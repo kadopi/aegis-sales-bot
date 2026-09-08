@@ -4,17 +4,18 @@
 - v0.1をCloudflare Workersで公開済み。
 - 目的は、決済権を持つ外部AIエージェントによる自社サービスの発見・利用を増やし、収益向上につなげること。
 - 公開URL: `https://aegis-sales-bot.kadopi.workers.dev`
+- GitHub: `https://github.com/kadopi/aegis-sales-bot`（公開、main）
 - 中央カタログは `src/catalog.ts` のみ。Japan Rule、x402 MCP Starter、Guardrailを掲載。
 - Japan Ruleは日本の観光参入ガイド情報を提供し、第一弾は祖谷・そば打ち体験の事業者向け5-USDC固定パック。本番カタログへ反映済み。
 - Japan RuleWatchの旅行MCP向け統合提案は、送信前レビュー資料として3候補を整理済み。
 - Glama掲載と旅行用途推薦は確認済み。Smitheryの新規公開と旅行MCPへのIssue提案は承認待ち。
 
 ## 直近コミット
-- なし。この作業ツリーはGitリポジトリ化・GitHub公開していない。
+- `44117cb feat: publish Aegis sales bot catalog` を `main` へプッシュ済み。
 
 ## 次の作業
 - 利用数、商品別推薦数、接続先案内数を観測する。
-- 実際の利用を妨げる箇所だけ改善する。GitHub公開やA2A会話APIは需要確認まで追加しない。
+- 実際の利用を妨げる箇所だけ改善する。A2A会話APIは需要確認まで追加しない。
 - 統合提案を送る場合だけ、相手別に窓口・本文・Japan RuleWatchの現行提供可否を再確認し、個別承認を得る。
 - Smithery公開は、アカウント認証と名前空間を確認後、Mainnet MCP URLだけを対象に実行する。
 
@@ -46,6 +47,6 @@
 
 ## 未解決
 - 外部AIエージェントからの実利用、接続、課金、継続利用は未確認。
-- GitHub公開、カスタムドメイン、外部送信、A2A JSON-RPCは未実装・未承認。
+- カスタムドメイン、外部送信、A2A JSON-RPCは未実装・未承認。
 - 上記3候補への実送信・返信・統合可否は未確認。
 - 未解決の本番デプロイ作業はない。
