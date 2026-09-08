@@ -1,0 +1,17 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "aegis-sales-bot",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-06",
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "aegis-sales-bot-metrics",
+      "database_id": "9455e9d5-74b1-4273-b295-b09b8713d4cf"
+    }
+  ]
+}
