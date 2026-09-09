@@ -1,4 +1,5 @@
 import type { SurveySubmission } from "./a2a";
+import type { ObservationAudience } from "./observation";
 
 export type MetricEvent = "catalog_view" | "recommendation" | "connection_guide" | "a2a_conversation" | "survey_response" | "error";
 
@@ -8,6 +9,20 @@ export function recordMetric(db: D1Database, metricEvent: MetricEvent, productId
     "INSERT INTO daily_metrics (event_date, event_name, product_id, total) VALUES (?, ?, ?, 1) ON CONFLICT(event_date, event_name, product_id) DO UPDATE SET total = total + 1"
   ).bind(date, metricEvent, productId).run().then(() => undefined).catch(() => {
     console.error(JSON.stringify({ event: "metric_write_failed", metricEvent, productId }));
+  });
+}
+
+export function recordFunnelMetric(
+  db: D1Database,
+  audience: ObservationAudience,
+  stage: Exclude<MetricEvent, "error">,
+  productId = ""
+): Promise<void> {
+  const date = new Date().toISOString().slice(0, 10);
+  return db.prepare(
+    "INSERT INTO daily_funnel_metrics (event_date, audience, stage, product_id, total) VALUES (?, ?, ?, ?, 1) ON CONFLICT(event_date, audience, stage, product_id) DO UPDATE SET total = total + 1"
+  ).bind(date, audience, stage, productId).run().then(() => undefined).catch(() => {
+    console.error(JSON.stringify({ event: "funnel_metric_write_failed", audience, stage, productId }));
   });
 }
 

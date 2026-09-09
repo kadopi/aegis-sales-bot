@@ -29,7 +29,7 @@ Agent Cardは`/a2a`をA2A JSON-RPC endpointとして、`/recommend`を独自HTTP
 
 ## Metrics
 
-`migrations/0001_create_daily_metrics.sql` は日付・イベント名・商品IDごとの合計だけをD1へ保存します。`migrations/0002_create_survey_responses.sql` は同意済みアンケートの回答日時、質問ID、回答、任意の会話IDだけを保存します。依頼本文、IP、秘密情報は保存しません。Worker標準のHTTP/エラー指標と重複する詳細ログは実装していません。
+`migrations/0001_create_daily_metrics.sql` は日付・イベント名・商品IDごとの合計だけをD1へ保存します。`migrations/0002_create_survey_responses.sql` は同意済みアンケートの回答日時、質問ID、回答、任意の会話IDだけを保存します。`migrations/0003_create_daily_funnel_metrics.sql` は、内部テスト宣言と外部または不明のアクセスを、日次・営業段階・商品別に集計します。`x-aegis-observation: internal-test` を付けたリクエストだけを内部テストとして扱い、流入元は保存・推測しません。依頼本文、IP、秘密情報は保存しません。Worker標準のHTTP/エラー指標と重複する詳細ログは実装していません。
 
 デプロイ前に、承認済みのCloudflareアカウントでD1を作成し、`wrangler.jsonc` の `database_id` を実IDに置き換え、マイグレーションを適用してください。
 

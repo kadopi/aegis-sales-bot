@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import worker from "../src/index";
 import { readSurveySubmission } from "../src/a2a";
+import { observationAudience } from "../src/observation";
 
 const db = { prepare: () => ({ bind: () => ({ run: async () => ({}) }) }) } as unknown as D1Database;
 const env = { DB: db } as Env;
@@ -16,6 +17,11 @@ type A2AResponse = {
 };
 
 describe("public HTTP routes", () => {
+  it("labels only an explicit internal-test header as an internal observation", () => {
+    expect(observationAudience(new Request("https://example.test/products.json", { headers: { "x-aegis-observation": "internal-test" } }))).toBe("internal_test_declared");
+    expect(observationAudience(new Request("https://example.test/products.json"))).toBe("external_or_unknown");
+  });
+
   it("serves the catalog", async () => {
     const response = await worker.fetch(incomingRequest("https://example.test/products.json"), env, ctx);
     expect(response.status).toBe(200);

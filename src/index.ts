@@ -1,6 +1,7 @@
 import { catalog } from "./catalog";
 import { handleA2A, readSurveySubmission } from "./a2a";
-import { recordMetric, recordSurveyResponses, type MetricEvent } from "./metrics";
+import { recordFunnelMetric, recordMetric, recordSurveyResponses, type MetricEvent } from "./metrics";
+import { observationAudience } from "./observation";
 import { parseRequest, recommend } from "./recommend";
 
 const VERSION = "0.1.0";
@@ -12,7 +13,7 @@ export default {
     try {
       if (request.method === "GET" && url.pathname === "/health") return json({ status: "ok", version: VERSION });
       if (request.method === "GET" && url.pathname === "/products.json") {
-        track(ctx, env, "catalog_view");
+        track(ctx, env, request, "catalog_view");
         return json({ version: VERSION, products: catalog });
       }
       if (request.method === "GET" && url.pathname === "/.well-known/agent-card.json") return json(agentCard(url.origin));
@@ -25,7 +26,7 @@ export default {
       });
       return json({ error: "not_found" }, 404);
     } catch {
-      track(ctx, env, "error");
+      track(ctx, env, request, "error");
       return json({ error: "internal_error" }, 500);
     }
   }
@@ -36,17 +37,17 @@ async function handleRecommendation(request: Request, env: Env, ctx: ExecutionCo
   try {
     input = await request.json();
   } catch {
-    track(ctx, env, "error");
+    track(ctx, env, request, "error");
     return json({ error: "invalid_json" }, 400);
   }
   const query = parseRequest(input);
   if (query === null) {
-    track(ctx, env, "error");
+    track(ctx, env, request, "error");
     return json({ error: "request_or_purpose_must_be_a_nonempty_string_of_at_most_2000_characters" }, 400);
   }
   const result = recommend(query);
-  track(ctx, env, "recommendation", result.recommendedProduct?.id ?? "");
-  if (result.recommendedProduct) track(ctx, env, "connection_guide", result.recommendedProduct.id);
+  track(ctx, env, request, "recommendation", result.recommendedProduct?.id ?? "");
+  if (result.recommendedProduct) track(ctx, env, request, "connection_guide", result.recommendedProduct.id);
   return json(result);
 }
 
@@ -55,14 +56,14 @@ async function handleA2ARequest(request: Request, env: Env, ctx: ExecutionContex
   try {
     input = await request.json();
   } catch {
-    track(ctx, env, "error");
+    track(ctx, env, request, "error");
     return json({ jsonrpc: "2.0", id: null, error: { code: -32700, message: "Invalid JSON payload" } }, 400);
   }
   const response = handleA2A(input);
-  track(ctx, env, "a2a_conversation");
+  track(ctx, env, request, "a2a_conversation");
   const survey = readSurveySubmission(input);
   if (survey) {
-    for (const answer of survey.answers) track(ctx, env, "survey_response", answer.questionId);
+    for (const answer of survey.answers) track(ctx, env, request, "survey_response", answer.questionId);
     ctx.waitUntil(recordSurveyResponses(env.DB, survey));
   }
   return json(response);
@@ -98,8 +99,9 @@ function agentCard(origin: string) {
   };
 }
 
-function track(ctx: ExecutionContext, env: Env, event: MetricEvent, productId = ""): void {
+function track(ctx: ExecutionContext, env: Env, request: Request, event: MetricEvent, productId = ""): void {
   ctx.waitUntil(recordMetric(env.DB, event, productId));
+  if (event !== "error") ctx.waitUntil(recordFunnelMetric(env.DB, observationAudience(request), event, productId));
 }
 
 function json(body: unknown, status = 200): Response {
