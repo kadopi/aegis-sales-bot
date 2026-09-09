@@ -21,7 +21,7 @@ curl -X POST http://localhost:8787/recommend \
 
 Japan Ruleの有料観光エントリー準備パックは、事業者・委任を受けたAIエージェント向けのBase Mainnet 5 USDC商品です。営業botは接続案内だけを行い、購入条件の確認、決済、配信はJapan Rule側で行います。
 
-Agent Cardは`/a2a`をA2A JSON-RPC endpointとして、`/recommend`を独自HTTP JSON bindingとして宣言します。A2Aは最初の用途確認、商品推薦、接続案内と任意の2問の改善アンケートを返します。回答は、AIが `params.metadata.survey.consent: true` を付けた場合だけD1へ保存します。会話本文、IP、秘密情報、外部送信は保存・実行しません。
+Agent Cardは`/a2a`をA2A JSON-RPC endpointとして、`/recommend`を独自HTTP JSON bindingとして宣言します。A2Aは同じ`taskId`で短い用途確認を継続し、商品推薦と接続案内の後に任意の2問の改善アンケートを返します。Durable Objectに保存するのは会話段階と7日間の有効期限だけです。回答は、AIが `params.metadata.survey.consent: true` を付けた場合だけD1へ保存します。会話本文、IP、秘密情報、外部送信は保存・実行しません。
 
 ## Add a product
 

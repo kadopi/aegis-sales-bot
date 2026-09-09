@@ -1,5 +1,6 @@
 import { catalog } from "./catalog";
-import { handleA2A, readSurveySubmission } from "./a2a";
+import { a2aResponse, parseA2ARequest, readSurveySubmission } from "./a2a";
+export { A2AConversation } from "./a2a-conversation";
 import { recordFunnelMetric, recordMetric, recordSurveyResponses, type MetricEvent } from "./metrics";
 import { observationAudience } from "./observation";
 import { parseRequest, recommend } from "./recommend";
@@ -59,7 +60,11 @@ async function handleA2ARequest(request: Request, env: Env, ctx: ExecutionContex
     track(ctx, env, request, "error");
     return json({ jsonrpc: "2.0", id: null, error: { code: -32700, message: "Invalid JSON payload" } }, 400);
   }
-  const response = handleA2A(input);
+  const parsed = parseA2ARequest(input);
+  if ("error" in parsed) return json(parsed.error, 400);
+  const { id, taskId, text } = parsed.request;
+  const conversation = env.A2A_CONVERSATIONS.getByName(taskId);
+  const response = a2aResponse(id, taskId, await conversation.advance({ text }));
   track(ctx, env, request, "a2a_conversation");
   const survey = readSurveySubmission(input);
   if (survey) {
@@ -84,7 +89,7 @@ function agentCard(origin: string) {
       protocolBinding: "urn:kadopi:aegis-sales-bot:recommend:1",
       protocolVersion: "1.0"
     }],
-    capabilities: { streaming: false, pushNotifications: false, stateTransitionHistory: false, extendedAgentCard: false, extensions: [] },
+    capabilities: { streaming: false, pushNotifications: false, stateTransitionHistory: true, extendedAgentCard: false, extensions: [] },
     defaultInputModes: ["application/json"],
     defaultOutputModes: ["application/json"],
     skills: [{
@@ -95,7 +100,7 @@ function agentCard(origin: string) {
       examples: ["Find a service for Japanese ecommerce return-policy research", "I am an AI agent helping a business prepare to launch an experiential tour in Japan", "Add USDC usage payments to an MCP server"]
     }],
     endpoints: { catalog: `${origin}/products.json`, recommend: `${origin}/recommend`, a2a: `${origin}/a2a`, health: `${origin}/health` },
-    limitations: ["The bot does not process payments or provide each product's service.", "The A2A endpoint supports deterministic qualification and optional survey prompts. It stores only explicitly consented survey answers for product analysis; it does not retain message content or send outbound messages."]
+    limitations: ["The bot does not process payments or provide each product's service.", "The A2A endpoint keeps only a task stage for up to seven days to support a short qualification conversation. It stores survey answers only after explicit consent; it does not retain message content or send outbound messages."]
   };
 }
 

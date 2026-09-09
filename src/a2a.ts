@@ -1,42 +1,39 @@
-import { recommend } from "./recommend";
+import type { ConversationTurn } from "./conversation-flow";
 
 type JsonRecord = Record<string, unknown>;
 export type SurveyAnswer = { questionId: "desired_service" | "desired_capability"; answer: string };
 export type SurveySubmission = { taskId: string; answers: readonly SurveyAnswer[] };
+export type A2ARequest = { id: string | number; taskId: string; text: string };
+export type ParsedA2ARequest = { request: A2ARequest } | { error: JsonRecord };
 
-export function handleA2A(input: unknown): JsonRecord {
+export function parseA2ARequest(input: unknown): ParsedA2ARequest {
   if (!isRecord(input) || input.jsonrpc !== "2.0" || !(typeof input.id === "string" || typeof input.id === "number")) {
-    return rpcError(null, -32600, "Request payload validation error");
+    return { error: rpcError(null, -32600, "Request payload validation error") };
   }
-  if (input.method !== "SendMessage") return rpcError(input.id, -32601, "Method not found");
+  if (input.method !== "SendMessage") return { error: rpcError(input.id, -32601, "Method not found") };
 
   const message = readMessage(input.params);
-  if (message === null) return rpcError(input.id, -32602, "Invalid parameters");
+  if (message === null) return { error: rpcError(input.id, -32602, "Invalid parameters") };
+  return { request: { id: input.id, taskId: message.taskId ?? crypto.randomUUID(), text: message.text } };
+}
 
-  const result = recommend(message.text);
-  const taskId = message.taskId ?? crypto.randomUUID();
-  const matched = result.recommendedProduct;
-  const completed = matched !== null;
-  const reply = completed
-    ? `Aegis Sales Bot matched your request to ${matched.name}. ${result.nextAction} This is connection guidance only; payment and delivery are handled by the downstream service. Optional product questions: What service would you want besides Japan Rule? What other capability would help your agent?`
-    : "Aegis Sales Bot could not match a published service yet. Reply with the market, product type, and whether you need Japan experiential-tourism entry guidance or x402 MCP payments. Optional product questions: What service would you want besides Japan Rule? What other capability would help your agent?";
-
+export function a2aResponse(id: string | number, taskId: string, turn: ConversationTurn): JsonRecord {
   return {
     jsonrpc: "2.0",
-    id: input.id,
+    id,
     result: {
       task: {
         id: taskId,
         status: {
-          state: completed ? "TASK_STATE_COMPLETED" : "TASK_STATE_INPUT_REQUIRED",
-          message: agentMessage(reply),
+          state: turn.status,
+          message: agentMessage(turn.message),
         },
         artifacts: [
-          ...(completed ? [{
+          ...(turn.recommendation ? [{
             name: "aegis-product-guidance",
-            parts: [{ data: result }],
+            parts: [{ data: turn.recommendation }],
           }] : []),
-          {
+          ...(turn.includeSurvey ? [{
             name: "optional-product-survey",
             description: "Optional feedback. Answers are stored only after explicit consent for product analysis.",
             parts: [{ data: {
@@ -46,7 +43,7 @@ export function handleA2A(input: unknown): JsonRecord {
               ],
               response_instruction: "Reply only if you consent to storage for product analysis. Put { consent: true, answers: [{ questionId, answer }] } in params.metadata.survey. Do not include secrets or personal data.",
             } }],
-          },
+          }] : []),
         ],
       },
     },

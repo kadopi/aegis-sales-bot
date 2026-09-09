@@ -1,10 +1,21 @@
 import { describe, expect, it } from "vitest";
 import worker from "../src/index";
 import { readSurveySubmission } from "../src/a2a";
+import { advanceConversation, type ConversationState } from "../src/conversation-flow";
 import { observationAudience } from "../src/observation";
 
 const db = { prepare: () => ({ bind: () => ({ run: async () => ({}) }) }) } as unknown as D1Database;
-const env = { DB: db } as Env;
+const conversationStates = new Map<string, ConversationState | null>();
+const conversations = {
+  getByName: (taskId: string) => ({
+    advance: async ({ text }: { text: string }) => {
+      const turn = advanceConversation(conversationStates.get(taskId) ?? null, text);
+      conversationStates.set(taskId, turn.nextState);
+      return turn;
+    },
+  }),
+};
+const env = { DB: db, A2A_CONVERSATIONS: conversations } as unknown as Env;
 const ctx = { waitUntil: (promise: Promise<unknown>) => void promise } as ExecutionContext;
 const incomingRequest = (input: RequestInfo, init?: RequestInit): Parameters<typeof worker.fetch>[0] => new Request(input, init) as Parameters<typeof worker.fetch>[0];
 type A2AResponse = {
@@ -68,16 +79,23 @@ describe("public HTTP routes", () => {
   it("runs an A2A qualification turn for Japan tourism", async () => {
     const response = await worker.fetch(incomingRequest("https://example.test/a2a", {
       method: "POST",
-      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "SendMessage", params: { message: { messageId: "m-1", role: "ROLE_USER", parts: [{ text: "I am an AI agent helping a business launch a food culture workshop tour in Japan" }] } } })
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "SendMessage", params: { message: { messageId: "m-1", taskId: "tourism-task", role: "ROLE_USER", parts: [{ text: "I am an AI agent helping a business launch a food culture workshop tour in Japan" }] } } })
     }), env, ctx);
     const payload = await response.json() as A2AResponse;
     expect(response.status).toBe(200);
-    expect(payload.result.task.status.state).toBe("TASK_STATE_COMPLETED");
+    expect(payload.result.task.status.state).toBe("TASK_STATE_INPUT_REQUIRED");
     expect(payload.result.task.status.message.parts[0].text).toContain("Japan Rule");
-    expect(payload.result.task.status.message.parts[0].text).toContain("What service would you want besides Japan Rule?");
+    expect(payload.result.task.status.message.parts[0].text).toContain("Does Japan Rule fit your current task?");
     expect(payload.result.task.artifacts[0].parts[0].data.recommendedProduct?.id).toBe("japan-rulewatch");
-    expect(payload.result.task.artifacts[1].name).toBe("optional-product-survey");
-    expect(payload.result.task.artifacts[1].parts[0].data.questions?.map((question) => question.question_id)).toContain("desired_capability");
+
+    const followUp = await worker.fetch(incomingRequest("https://example.test/a2a", {
+      method: "POST",
+      body: JSON.stringify({ jsonrpc: "2.0", id: 2, method: "SendMessage", params: { message: { messageId: "m-2", taskId: "tourism-task", role: "ROLE_USER", parts: [{ text: "Yes, it fits." }] } } })
+    }), env, ctx);
+    const followUpPayload = await followUp.json() as A2AResponse;
+    expect(followUpPayload.result.task.status.state).toBe("TASK_STATE_COMPLETED");
+    expect(followUpPayload.result.task.artifacts[0].name).toBe("optional-product-survey");
+    expect(followUpPayload.result.task.artifacts[0].parts[0].data.questions?.map((question) => question.question_id)).toContain("desired_capability");
   });
 
   it("asks an A2A caller to qualify an unmatched request", async () => {

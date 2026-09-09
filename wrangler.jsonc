@@ -13,5 +13,13 @@
       "database_name": "aegis-sales-bot-metrics",
       "database_id": "9455e9d5-74b1-4273-b295-b09b8713d4cf"
     }
+  ],
+  "durable_objects": {
+    "bindings": [
+      { "name": "A2A_CONVERSATIONS", "class_name": "A2AConversation" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["A2AConversation"] }
   ]
 }
