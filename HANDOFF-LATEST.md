@@ -11,7 +11,7 @@
 - Glama掲載と旅行用途推薦は確認済み。A2Aの用途確認・推薦・任意アンケートAPIを本番デプロイ済み。
 
 ## 直近コミット
-- `44117cb feat: publish Aegis sales bot catalog` を `main` へプッシュ済み。
+- `d23dc3f feat: add A2A discovery and survey persistence` を `main` へプッシュ済み。
 
 ## 次の作業
 - A2A会話数、質問別回答数、自由記述をD1で観測する。
