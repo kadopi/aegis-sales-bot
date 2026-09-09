@@ -16,6 +16,8 @@ describe("recommend", () => {
     expect(result.paidOffer).toContain("jp-tokushima-miyoshi-iya-soba");
     expect(result.paidOffer).toContain("Business-only Japan Experiential Tourism Entry Guide information");
     expect(result.paidOffer).toContain("Iya, Tokushima six-person soba-workshop model case");
+    expect(result.paidOffer).toContain("official-source locations");
+    expect(result.paidOffer).toContain("published contact routes");
     expect(result.paidOffer).toContain("not a workshop ticket");
     expect(result.connection?.url).toBe("https://japan-rulewatch-mcp-mainnet.kadopi.workers.dev/mcp");
   });
