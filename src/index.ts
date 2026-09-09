@@ -77,7 +77,7 @@ async function handleA2ARequest(request: Request, env: Env, ctx: ExecutionContex
 function agentCard(origin: string) {
   return {
     name: "Aegis Sales Bot",
-    description: "A deterministic, machine-readable catalog for AI agents to discover Aegis services, including a business-only Japan Experiential Tourism Entry Guide MCP. It helps an authorized business agent identify official sources, consultation points, and missing facts before an optional x402 purchase handled by the downstream service.",
+    description: "A deterministic, machine-readable catalog for AI agents to discover Aegis services, including a business-only Japan Experiential Tourism Entry Guide MCP. It gives an authorized business agent a free model-case preview before an optional x402 purchase unlocks source locations, contact routes, inquiry text, and an action plan from the downstream service.",
     version: VERSION,
     url: origin,
     supportedInterfaces: [{

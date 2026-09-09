@@ -7,6 +7,7 @@
 - GitHub: `https://github.com/kadopi/aegis-sales-bot`（公開、main）
 - 中央カタログは `src/catalog.ts` のみ。Japan Rule、x402 MCP Starter、Guardrailを掲載。
 - Japan Ruleは日本の観光参入ガイド情報を提供し、第一弾は祖谷・そば打ち体験の事業者向け5-USDC固定パック。本番カタログへ反映済み。
+- Japan Ruleの無料版はモデルケース・3つの判断テーマ・有料版で得られる実務情報を返す実行前プレビュー。有料版は公式ソースの所在、公開連絡先、問い合わせ文、優先行動を返す。
 - Japan RuleWatchの旅行MCP向け統合提案は、送信前レビュー資料として3候補を整理済み。
 - Glama掲載と旅行用途推薦は確認済み。A2Aの用途確認・推薦・任意アンケートAPIを本番デプロイ済み。
 

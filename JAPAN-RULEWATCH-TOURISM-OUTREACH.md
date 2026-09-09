@@ -6,7 +6,7 @@ Status: review-only. Updated: 2026-09-08 JST.
 
 Prepare a small set of public, technically compatible travel-MCP operators for a proposed Japan RuleWatch addition. This file is not a contact queue and must not trigger email, issue creation, posting, or product changes.
 
-- Japan RuleWatch supplies Japan tourism entry guidance with structured official-source discovery and paid packs. The Sales Bot only recommends and connects it. Japan RuleWatch does not make bookings, operate the partner's agent, or give individual legal conclusions.
+- Japan RuleWatch supplies a free model-case preview and paid Japan-tourism entry-preparation packs. The Sales Bot only recommends and connects it. Japan RuleWatch does not make bookings, operate the partner's agent, or give individual legal conclusions.
 - The existing Japan RuleWatch Mainnet MCP connection, travel recommendation, and B2B 5-USDC Iya-soba entry pack remain unchanged.
 - Do not ask a partner to copy Japan RuleWatch data. The proposal is an optional second MCP connection.
 
@@ -14,15 +14,15 @@ Prepare a small set of public, technically compatible travel-MCP operators for a
 
 - Glama: Japan RuleWatch is already listed as the public connector `dev.workers.kadopi.japan-rulewatch-mcp`. No duplicate registration is needed.
 - Sales Bot: the public catalog recommends Japan RuleWatch for `tourism` / `travel` / `hotel` / `OTA` requests and returns the Mainnet MCP URL. It describes Japan tourism entry guidance as the product, with `jp-tokushima-miyoshi-iya-soba` as the first currently available paid pack.
-- Mainnet: verified on 2026-09-08. The endpoint is healthy and exposes `search_entry_cases`, `get_commercial_terms`, and `get_entry_pack`. The free lookup returns a 6-person, English, source-backed consultation-preparation sample for an existing provider's venue in Iya; it excludes transport and lodging.
-- Smithery: no existing public listing was confirmed. Publishing target, if approved: `https://japan-rulewatch-mcp-mainnet.kadopi.workers.dev/mcp`. Smithery requires account authentication and a publisher namespace before a new public listing can be created.
+- Mainnet: the endpoint exposes `search_entry_cases`, `get_commercial_terms`, and `get_entry_pack`. The free lookup returns a six-person English Iya model-case preview, three decision themes, and what the paid pack adds; it excludes transport and lodging. It does not return source locations, contact routes, inquiry text, or an action plan.
+- Smithery: existing public listing `https://smithery.ai/servers/kadopi/japan-rulewatch` points to the Mainnet endpoint and is being refreshed from current server metadata. Do not create a duplicate listing.
 
 ## Prioritized prospects
 
 ### 1. Japan Travel MCP by KJ Sunada — high
 
 - Evidence: 18言語の観光情報、約2万の宿泊施設、MCPとHTTP運用を公開し、GitHub Issuesを有効化しています。
-- Integration point: the agent can add Japan RuleWatch as a tourism-entry guidance MCP. The first usable flow is the free `search_entry_cases` call for `jp-tokushima-miyoshi-iya` / `food_culture_workshop` / `en`; its result states scope and unknowns before any purchase. A business principal can then choose the first 5-USDC fixed pack.
+- Integration point: the agent can add Japan RuleWatch as a tourism-entry guidance MCP. The first usable flow is the free `search_entry_cases` call for `jp-tokushima-miyoshi-iya` / `food_culture_workshop` / `en`; it returns an execution preview before any purchase. A business principal can then choose the first 5-USDC fixed pack when source routes, contact routes, inquiry text, and an action plan are needed.
 - Public proposal route: GitHub Issues, <https://github.com/ookami0210/japan-travel-mcp/issues>.
 - Source: <https://github.com/ookami0210/japan-travel-mcp>
 
