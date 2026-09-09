@@ -14,9 +14,17 @@ describe("recommend", () => {
     expect(result.recommendedProduct?.id).toBe("japan-rulewatch");
     expect(result.paidOffer).toContain("5 USDC");
     expect(result.paidOffer).toContain("jp-tokushima-miyoshi-iya-soba");
-    expect(result.paidOffer).toContain("日本の観光参入ガイド情報の提供");
-    expect(result.paidOffer).toContain("第一弾");
+    expect(result.paidOffer).toContain("Business-only Japan Experiential Tourism Entry Guide information");
+    expect(result.paidOffer).toContain("Iya, Tokushima six-person soba-workshop model case");
+    expect(result.paidOffer).toContain("not a workshop ticket");
     expect(result.connection?.url).toBe("https://japan-rulewatch-mcp-mainnet.kadopi.workers.dev/mcp");
+  });
+
+  it("recommends Japan Rule for an English business-agent entry query", () => {
+    const result = recommend("I am an AI agent helping a business launch a food culture workshop tour in Japan");
+    expect(result.fit).toBe("high");
+    expect(result.recommendedProduct?.id).toBe("japan-rulewatch");
+    expect(result.nextAction).toContain("search_entry_cases");
   });
 
   it("recommends x402 MCP Starter for USDC MCP payments", () => {

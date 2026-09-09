@@ -1,5 +1,6 @@
 import { catalog } from "./catalog";
-import { recordMetric, type MetricEvent } from "./metrics";
+import { handleA2A, readSurveySubmission } from "./a2a";
+import { recordMetric, recordSurveyResponses, type MetricEvent } from "./metrics";
 import { parseRequest, recommend } from "./recommend";
 
 const VERSION = "0.1.0";
@@ -16,10 +17,11 @@ export default {
       }
       if (request.method === "GET" && url.pathname === "/.well-known/agent-card.json") return json(agentCard(url.origin));
       if (request.method === "POST" && url.pathname === "/recommend") return await handleRecommendation(request, env, ctx);
+      if (request.method === "POST" && url.pathname === "/a2a") return await handleA2ARequest(request, env, ctx);
       if (request.method === "GET" && url.pathname === "/") return json({
         name: "Aegis Sales Bot", version: VERSION,
         description: "Deterministic product discovery and connection guidance for AI agents.",
-        endpoints: ["/health", "/products.json", "/recommend", "/.well-known/agent-card.json"]
+        endpoints: ["/health", "/products.json", "/recommend", "/a2a", "/.well-known/agent-card.json"]
       });
       return json({ error: "not_found" }, 404);
     } catch {
@@ -48,29 +50,51 @@ async function handleRecommendation(request: Request, env: Env, ctx: ExecutionCo
   return json(result);
 }
 
+async function handleA2ARequest(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  let input: unknown;
+  try {
+    input = await request.json();
+  } catch {
+    track(ctx, env, "error");
+    return json({ jsonrpc: "2.0", id: null, error: { code: -32700, message: "Invalid JSON payload" } }, 400);
+  }
+  const response = handleA2A(input);
+  track(ctx, env, "a2a_conversation");
+  const survey = readSurveySubmission(input);
+  if (survey) {
+    for (const answer of survey.answers) track(ctx, env, "survey_response", answer.questionId);
+    ctx.waitUntil(recordSurveyResponses(env.DB, survey));
+  }
+  return json(response);
+}
+
 function agentCard(origin: string) {
   return {
     name: "Aegis Sales Bot",
-    description: "A deterministic, machine-readable catalog for discovering Aegis services and their connection points.",
+    description: "A deterministic, machine-readable catalog for AI agents to discover Aegis services, including a business-only Japan Experiential Tourism Entry Guide MCP. It helps an authorized business agent identify official sources, consultation points, and missing facts before an optional x402 purchase handled by the downstream service.",
     version: VERSION,
     url: origin,
     supportedInterfaces: [{
+      url: `${origin}/a2a`,
+      protocolBinding: "JSONRPC",
+      protocolVersion: "1.0"
+    }, {
       url: `${origin}/recommend`,
       protocolBinding: "urn:kadopi:aegis-sales-bot:recommend:1",
       protocolVersion: "1.0"
     }],
-    capabilities: { streaming: false, pushNotifications: false, extendedAgentCard: false, extensions: [] },
+    capabilities: { streaming: false, pushNotifications: false, stateTransitionHistory: false, extendedAgentCard: false, extensions: [] },
     defaultInputModes: ["application/json"],
     defaultOutputModes: ["application/json"],
     skills: [{
       id: "product-recommendation",
       name: "Product recommendation",
-      description: "Matches a request to a published catalog item without AI inference, payment, or external sending.",
-      tags: ["catalog", "product-discovery", "deterministic"],
-      examples: ["Find a service for Japanese ecommerce return-policy research", "Add USDC usage payments to an MCP server"]
+      description: "Runs a deterministic A2A qualification turn and matches a request to a published catalog item. For Japan Rule, it returns an MCP endpoint where an authorized business agent can inspect a reusable experiential-tourism entry model case before an optional x402 purchase.",
+      tags: ["catalog", "product-discovery", "a2a", "deterministic", "mcp", "x402", "japan-tourism"],
+      examples: ["Find a service for Japanese ecommerce return-policy research", "I am an AI agent helping a business prepare to launch an experiential tour in Japan", "Add USDC usage payments to an MCP server"]
     }],
-    endpoints: { catalog: `${origin}/products.json`, recommend: `${origin}/recommend`, health: `${origin}/health` },
-    limitations: ["The bot does not process payments or provide each product's service.", "No outbound messages or conversation history are used.", "The custom HTTP JSON binding is not an A2A JSON-RPC endpoint."]
+    endpoints: { catalog: `${origin}/products.json`, recommend: `${origin}/recommend`, a2a: `${origin}/a2a`, health: `${origin}/health` },
+    limitations: ["The bot does not process payments or provide each product's service.", "The A2A endpoint supports deterministic qualification and optional survey prompts. It stores only explicitly consented survey answers for product analysis; it does not retain message content or send outbound messages."]
   };
 }
 

@@ -7,6 +7,7 @@
 - `GET /health` — 稼働状態と版
 - `GET /products.json` — 唯一の中央商品カタログ
 - `POST /recommend` — 依頼から商品を推薦
+- `POST /a2a` — A2A JSON-RPCの `SendMessage` で用途確認・推薦
 - `GET /.well-known/agent-card.json` — Agent Card
 - `GET /` — 短いJSON案内
 
@@ -20,7 +21,7 @@ curl -X POST http://localhost:8787/recommend \
 
 Japan Ruleの有料観光エントリー準備パックは、事業者・委任を受けたAIエージェント向けのBase Mainnet 5 USDC商品です。営業botは接続案内だけを行い、購入条件の確認、決済、配信はJapan Rule側で行います。
 
-Agent Cardは`/recommend`を独自HTTP JSON bindingとして宣言します。A2A JSON-RPCの会話・タスクAPIは初版に含めません。
+Agent Cardは`/a2a`をA2A JSON-RPC endpointとして、`/recommend`を独自HTTP JSON bindingとして宣言します。A2Aは最初の用途確認、商品推薦、接続案内と任意の2問の改善アンケートを返します。回答は、AIが `params.metadata.survey.consent: true` を付けた場合だけD1へ保存します。会話本文、IP、秘密情報、外部送信は保存・実行しません。
 
 ## Add a product
 
@@ -28,7 +29,7 @@ Agent Cardは`/recommend`を独自HTTP JSON bindingとして宣言します。A2
 
 ## Metrics
 
-`migrations/0001_create_daily_metrics.sql` は日付・イベント名・商品IDごとの合計だけをD1へ保存します。対象はカタログ取得、推薦、接続先案内、エラーです。依頼本文、IP、秘密情報は保存しません。Worker標準のHTTP/エラー指標と重複する詳細ログは実装していません。
+`migrations/0001_create_daily_metrics.sql` は日付・イベント名・商品IDごとの合計だけをD1へ保存します。`migrations/0002_create_survey_responses.sql` は同意済みアンケートの回答日時、質問ID、回答、任意の会話IDだけを保存します。依頼本文、IP、秘密情報は保存しません。Worker標準のHTTP/エラー指標と重複する詳細ログは実装していません。
 
 デプロイ前に、承認済みのCloudflareアカウントでD1を作成し、`wrangler.jsonc` の `database_id` を実IDに置き換え、マイグレーションを適用してください。
 
