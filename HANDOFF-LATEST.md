@@ -57,3 +57,14 @@
 - A2A JSON-RPCと同意済みアンケート保存は公開済み。カスタムドメイン、外部送信は未実施。
 - 上記3候補への実送信・返信・統合可否は未確認。
 - 未解決の本番デプロイ作業はない。
+
+## 2026-09-10 自律ヒアリング（未デプロイ）
+- `src/outreach.ts` が公開A2A Registryから候補を確認する。
+- 事業向け・公開・認証不要・JSON-RPC 1.0・用途適合の候補だけを対象にする。
+- 一意な `outreach_attempts.target_id` により、同じ候補への再送を防ぐ。
+- 送信はCron実行ごとに初回ヒアリング1件だけ。支払い、登録、注文、追送はしない。
+- 返信本文と候補説明は保存しない。D1には宛先、時刻、結果コードだけを保存する。
+- `OUTREACH_ENABLED=false` が初期値で、デプロイだけでは自動送信を始めない。
+- `migrations/0004_create_outreach_attempts.sql` と `test/outreach.test.ts` を追加。
+- `npm run check`、`npm test`（20 tests）、`wrangler deploy --dry-run` を確認。
+- 実稼働にはcommit・push・D1 migration・deploy・`OUTREACH_ENABLED=true` の別承認が必要。

@@ -4,6 +4,7 @@
 interface __BaseEnv_Env {
 	DB: D1Database;
 	A2A_CONVERSATIONS: DurableObjectNamespace<import("./src/index").A2AConversation>;
+	OUTREACH_ENABLED: "true" | "false";
 }
 declare namespace Cloudflare {
 	interface GlobalProps {
