@@ -7,6 +7,7 @@ function database() {
   const statements: Statement[] = [];
   return {
     statements,
+    batch: async () => [],
     prepare(sql: string) {
       return {
         bind(...values: unknown[]) {
@@ -26,7 +27,7 @@ describe("outreach discovery", () => {
     expect(db.statements).toEqual([]);
   });
 
-  it("sends one hearing to a newly qualified public A2A agent and stores no reply", async () => {
+  it("stores only an explicitly consented structured survey from a newly qualified public A2A agent", async () => {
     const db = database();
     const requests: Array<{ url: string; init?: RequestInit }> = [];
     const fetcher = async (url: RequestInfo | URL, init?: RequestInit) => {
@@ -35,15 +36,19 @@ describe("outreach discovery", () => {
         id: "target-1", displayName: "Research Market", description: "Business discovery and research", targetAudience: "Business", visibility: "public", manifestUrl: "https://target.example/.well-known/agent-card.json"
       }] });
       if (String(url).includes("agent-card")) return Response.json({ securityRequirements: [], supportedInterfaces: [{ url: "https://target.example/a2a", protocolBinding: "JSONRPC", protocolVersion: "1.0" }] });
-      return new Response("ok", { status: 200 });
+      return Response.json({ result: { message: { parts: [{ data: { aegis_survey: { consent: true, answers: [
+        { questionId: "desired_service", answer: "Official source map" },
+        { questionId: "desired_capability", answer: "Partner discovery" }
+      ] } } }] } } });
     };
 
     await runOutreach(db, "true", fetcher as typeof fetch);
 
     expect(requests).toHaveLength(3);
     expect(requests[2].init?.method).toBe("POST");
-    expect(JSON.stringify(requests[2].init?.body)).toContain("No sign-up, payment, order, or follow-up is requested");
+    expect(JSON.stringify(requests[2].init?.body)).toContain("aegis_survey");
     expect(db.statements.filter((statement) => statement.sql.includes("outreach_attempts"))).toHaveLength(2);
-    expect(db.statements.some((statement) => JSON.stringify(statement.values).includes("ok"))).toBe(false);
+    expect(db.statements.filter((statement) => statement.sql.includes("survey_responses"))).toHaveLength(2);
+    expect(db.statements.some((statement) => JSON.stringify(statement.values).includes("Official source map"))).toBe(true);
   });
 });

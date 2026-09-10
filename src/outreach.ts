@@ -93,24 +93,27 @@ async function reserveTarget(db: D1Database, target: OutboundTarget): Promise<bo
 }
 
 async function sendHearing(db: D1Database, target: OutboundTarget, fetcher: typeof fetch): Promise<void> {
+  const taskId = `aegis-outreach-${target.id}`;
   const body = {
     jsonrpc: "2.0",
-    id: `aegis-outreach-${target.id}`,
+    id: taskId,
     method: "SendMessage",
     params: {
       message: {
         messageId: crypto.randomUUID(),
         role: "ROLE_USER",
-        parts: [{ text: "Hello. Aegis Sales Bot is conducting a short agent-to-agent discovery interview. What business capability is currently difficult for your users or agents to obtain programmatically? We are especially researching country-entry workflows: official-source preparation, tourism-business research, local partner discovery, and payment-ready service access. If a Japan-related MCP, API, or verified information service would help, please tell us what outcome you need. No sign-up, payment, order, or follow-up is requested. If you choose to respond through Aegis Sales Bot, you may opt into its survey; otherwise this message and your response are not stored." }]
+        parts: [{ text: "Hello. Aegis Sales Bot is conducting a short agent-to-agent discovery interview. What business capability is currently difficult for your users or agents to obtain programmatically? We are especially researching country-entry workflows: official-source preparation, tourism-business research, local partner discovery, and payment-ready service access. If a Japan-related MCP, API, or verified information service would help, please tell us what outcome you need. No sign-up, payment, order, or follow-up is requested. To permit storage for product analysis, include one JSON data part: { \"aegis_survey\": { \"consent\": true, \"answers\": [{ \"questionId\": \"desired_service\", \"answer\": \"your answer\" }, { \"questionId\": \"desired_capability\", \"answer\": \"your answer\" }] } }. Without that explicit consent, your response is not stored." }]
       }
     }
   };
 
   try {
     const response = await fetcher(target.endpointUrl, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+    const survey = response.ok ? await readOutboundSurvey(response, taskId) : null;
+    if (survey) await recordSurveyResponses(db, survey);
     await db.prepare(
       "UPDATE outreach_attempts SET sent_at = ?, status = ?, http_status = ? WHERE target_id = ?"
-    ).bind(new Date().toISOString(), response.ok ? "sent" : "rejected", response.status, target.id).run();
+    ).bind(new Date().toISOString(), survey ? "survey_received" : response.ok ? "sent" : "rejected", response.status, target.id).run();
   } catch {
     await db.prepare(
       "UPDATE outreach_attempts SET sent_at = ?, status = 'failed' WHERE target_id = ?"
@@ -118,6 +121,38 @@ async function sendHearing(db: D1Database, target: OutboundTarget, fetcher: type
   }
 }
 
+async function readOutboundSurvey(response: Response, taskId: string): Promise<SurveySubmission | null> {
+  try {
+    return surveyFromResponse(await response.json(), taskId);
+  } catch {
+    return null;
+  }
+}
+
+function surveyFromResponse(payload: unknown, taskId: string): SurveySubmission | null {
+  const survey = findSurvey(payload);
+  return survey ? readSurveySubmission({ params: { message: { taskId }, metadata: { survey } } }) : null;
+}
+
+function findSurvey(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = findSurvey(item);
+      if (found) return found;
+    }
+    return null;
+  }
+  if (!isRecord(value)) return null;
+  if ("aegis_survey" in value) return value.aegis_survey;
+  for (const item of Object.values(value)) {
+    const found = findSurvey(item);
+    if (found) return found;
+  }
+  return null;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
+import { readSurveySubmission, type SurveySubmission } from "./a2a";
+import { recordSurveyResponses } from "./metrics";
