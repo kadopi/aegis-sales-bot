@@ -58,13 +58,14 @@
 - 上記3候補への実送信・返信・統合可否は未確認。
 - 未解決の本番デプロイ作業はない。
 
-## 2026-09-10 自律ヒアリング（未デプロイ）
+## 2026-09-10 自律ヒアリング（本番有効）
 - `src/outreach.ts` が公開A2A Registryから候補を確認する。
 - 事業向け・公開・認証不要・JSON-RPC 1.0・用途適合の候補だけを対象にする。
 - 一意な `outreach_attempts.target_id` により、同じ候補への再送を防ぐ。
 - 送信はCron実行ごとに初回ヒアリング1件だけ。支払い、登録、注文、追送はしない。
 - 返信本文と候補説明は保存しない。D1には宛先、時刻、結果コードだけを保存する。
-- `OUTREACH_ENABLED=false` が初期値で、デプロイだけでは自動送信を始めない。
+- 設定ファイルの初期値は `OUTREACH_ENABLED=false`。本番は承認済みのCLI変数で `true` を設定済み。
 - `migrations/0004_create_outreach_attempts.sql` と `test/outreach.test.ts` を追加。
 - `npm run check`、`npm test`（20 tests）、`wrangler deploy --dry-run` を確認。
-- 実稼働にはcommit・push・D1 migration・deploy・`OUTREACH_ENABLED=true` の別承認が必要。
+- `944e0e4` をpush済み。Remote D1 migration `0004` を適用し、本番Version ID `d30cd21d-7570-4186-9975-d0a6636e323a` を配備済み。
+- Cronは毎日 `0 2 * * *` UTC。本番Agent Cardはv0.2.0と自律ヒアリングの保存境界を返すことを確認。
