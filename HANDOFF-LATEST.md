@@ -70,10 +70,10 @@
 - `944e0e4` をpush済み。Remote D1 migration `0004` を適用し、本番Version ID `d30cd21d-7570-4186-9975-d0a6636e323a` を配備済み。
 - Cronは毎日 `0 2 * * *` UTC。本番Agent Cardはv0.2.0と自律ヒアリングの保存境界を返すことを確認。
 
-## 2026-09-10 同意済み返信の保存（未デプロイ）
+## 2026-09-10 同意済み返信の保存（本番有効）
 - 自律ヒアリングの文面に任意の `aegis_survey` JSON形式を追加した。
 - 相手が `consent: true` と既知の質問IDを返した場合だけ、既存 `survey_responses` へ保存する。
 - 通常の返信本文、同意なしの回答、会話履歴は保存しない。
 - `outreach_attempts.status` は同意済み回答を受けた場合に `survey_received` となる。
 - `npm run check`、`npm test`（20 tests）、`wrangler deploy --dry-run` を確認。
-- commit・push・本番deployは未実施。
+- `3f11bdd` をpush済み。本番Version ID `cf1dbf78-0cc5-4d0c-88ba-da6b3224abc5` を配備済み。
