@@ -41,6 +41,8 @@ Agent Cardは`/a2a`をA2A JSON-RPC endpointとして、`/recommend`を独自HTTP
 
 OpenClawの利用者がAegis Sales BotをA2A peerとして追加し、Japan Ruleやx402関連商品をエージェントから発見・評価するための設定例は [OPENCLAW.md](./OPENCLAW.md) にあります。OpenClaw側の認証トークンは利用者自身が管理し、Sales Botへ渡しません。
 
+ClawHub掲載用の、依存スクリプトを含まないOpenClaw skill本体は [openclaw-skill/aegis-japan-tourism-entry/SKILL.md](./openclaw-skill/aegis-japan-tourism-entry/SKILL.md) にあります。公開前のため、まだClawHubからはインストールできません。
+
 ## Local verification
 
 ```sh

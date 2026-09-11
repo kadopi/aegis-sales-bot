@@ -97,3 +97,7 @@
 - `OPENCLAW.md` に、OpenClaw利用者がSales BotをA2A outbound peerとして追加する設定例、3つの初回タスク、商品別の受取内容、データ保存境界を記載した。
 - OpenClaw側のpeer tokenは同利用者の受信保護用であり、Aegisへ送らない。Sales Botは公開no-auth A2A endpointのため、設定例に`outboundToken`は置かない。
 - 外部の投稿、掲載、OpenClaw gatewayへの接続、メッセージ送信、デプロイは未実施。公開にはcommit・pushが必要。
+
+## 2026-09-11 ClawHub skill（ローカル準備）
+- `openclaw-skill/aegis-japan-tourism-entry/SKILL.md` を追加。無料のJapan Ruleプレビューから始める指示、A2A/HTTP/MCPの接続先、購入・予約・申請を独断実行しない境界を含む。
+- 依存スクリプト、秘密情報、実行コードを含まない最小スキル。ClawHub公開には別途ログインとpublish承認が必要。
