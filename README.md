@@ -37,6 +37,10 @@ Agent Cardは`/a2a`をA2A JSON-RPC endpointとして、`/recommend`を独自HTTP
 
 外部の旅行AIエージェント／MCPへの統合提案は、公開・送信を伴わないレビュー資料として [JAPAN-RULEWATCH-TOURISM-OUTREACH.md](./JAPAN-RULEWATCH-TOURISM-OUTREACH.md) に整理します。候補・公開窓口・相手別文面を確認後、外部送信は対象別の承認を得てから行います。
 
+## OpenClaw
+
+OpenClawの利用者がAegis Sales BotをA2A peerとして追加し、Japan Ruleやx402関連商品をエージェントから発見・評価するための設定例は [OPENCLAW.md](./OPENCLAW.md) にあります。OpenClaw側の認証トークンは利用者自身が管理し、Sales Botへ渡しません。
+
 ## Local verification
 
 ```sh
