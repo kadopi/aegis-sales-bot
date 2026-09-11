@@ -78,17 +78,17 @@
 - `npm run check`、`npm test`（20 tests）、`wrangler deploy --dry-run` を確認。
 - `3f11bdd` をpush済み。本番Version ID `cf1dbf78-0cc5-4d0c-88ba-da6b3224abc5` を配備済み。
 
-## 2026-09-10 Integration Kitカタログ（未デプロイ）
+## 2026-09-11 Integration Kitカタログ（本番有効）
 - `$19 USD` の x402 MCP Integration Kit — Beta を `coming-soon` 商品として追加した。
 - 公開済みMCPと購入導線型商品を区別するため、`checkout` 接続型とURL未設定を扱えるようにした。
 - Gumroad公開URLがない間は購入導線を返さず、公開準備中と明示する。
 - 汎用x402依頼は既存の公開Starterを優先し、`integration` または `kit` を明示した依頼だけIntegration Kitを推薦する。
 - `npm run check`、`npm test`（21 tests）、`wrangler deploy --dry-run` を確認。
-- commit・push・本番deployは未実施。
+- `ddb773b` をpush済み。本番Version ID `f9735f87-17e7-4b1e-9e9a-d527009d1e71` を配備済み。
 
-## 2026-09-11 自律ヒアリング実行記録（未デプロイ）
+## 2026-09-11 自律ヒアリング実行記録（本番有効）
 - `outreach_runs` にCron実行時刻、結果、Registry候補数、任意の送信先IDを保存する修正を追加。
 - 結果は `sent`、`survey_received`、`rejected`、`no_candidate`、`failed` のいずれか。
 - 候補説明、返信本文、秘密情報は保存しない。
 - `npm run check`、`npm test`（22 tests）、`wrangler deploy --dry-run` を確認。
-- 本番D1 migration `0005`、commit・push・deployは未実施。
+- 本番D1 migration `0005` を適用し、上記本番Versionへ配備済み。`outreach_runs` テーブルの存在を確認。
