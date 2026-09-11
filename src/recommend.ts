@@ -8,7 +8,7 @@ export type Recommendation = {
   fit: "high" | "medium" | "none";
   freeOffer: string | null;
   paidOffer: string | null;
-  connection: { type: Product["connectionType"]; url: string; docsUrl: string } | null;
+  connection: { type: Product["connectionType"]; url: string; docsUrl: string | null } | null;
   example: { input: string; output: string } | null;
   nextAction: string;
   alternatives: readonly Product[];
@@ -37,7 +37,7 @@ export function recommend(request: string): Recommendation {
     fit,
     freeOffer: best.product.freeOffer,
     paidOffer: best.product.paidOffer,
-    connection: { type: best.product.connectionType, url: best.product.connectionUrl, docsUrl: best.product.docsUrl },
+    connection: best.product.connectionUrl ? { type: best.product.connectionType, url: best.product.connectionUrl, docsUrl: best.product.docsUrl } : null,
     example: { input: best.product.exampleInput, output: best.product.exampleOutput },
     nextAction: best.product.nextAction,
     alternatives: ranked.filter((item) => item.score > 0 && item.product.id !== best.product.id).map((item) => item.product)
@@ -45,6 +45,7 @@ export function recommend(request: string): Recommendation {
 }
 
 function score(product: Product, request: string): number {
+  if (product.status === "coming-soon" && !["integration", "kit"].some((keyword) => keywordMatches(request, keyword))) return 0;
   return product.keywords.reduce((total, keyword) => total + (keywordMatches(request, keyword) ? 1 : 0), 0);
 }
 

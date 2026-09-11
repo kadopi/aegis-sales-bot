@@ -50,5 +50,17 @@ describe("outreach discovery", () => {
     expect(db.statements.filter((statement) => statement.sql.includes("outreach_attempts"))).toHaveLength(2);
     expect(db.statements.filter((statement) => statement.sql.includes("survey_responses"))).toHaveLength(2);
     expect(db.statements.some((statement) => JSON.stringify(statement.values).includes("Official source map"))).toBe(true);
+    expect(db.statements.some((statement) => statement.sql.includes("outreach_runs") && JSON.stringify(statement.values).includes("survey_received"))).toBe(true);
+  });
+
+  it("records a no-candidate run without sending an A2A message", async () => {
+    const db = database();
+    const fetcher = async () => Response.json({ agents: [] });
+
+    await runOutreach(db, "true", fetcher as typeof fetch);
+
+    expect(db.statements).toHaveLength(1);
+    expect(db.statements[0].sql).toContain("outreach_runs");
+    expect(JSON.stringify(db.statements[0].values)).toContain("no_candidate");
   });
 });

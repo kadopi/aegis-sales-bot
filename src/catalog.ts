@@ -1,17 +1,17 @@
 export type Product = {
   id: string;
   name: string;
-  status: "public" | "local-candidate";
+  status: "public" | "coming-soon" | "local-candidate";
   summary: string;
   useCases: readonly string[];
   keywords: readonly string[];
   limitations: readonly string[];
   freeOffer: string;
   paidOffer: string | null;
-  connectionType: "mcp";
-  connectionUrl: string;
-  docsUrl: string;
-  sourceUrl: string;
+  connectionType: "mcp" | "checkout";
+  connectionUrl: string | null;
+  docsUrl: string | null;
+  sourceUrl: string | null;
   exampleInput: string;
   exampleOutput: string;
   nextAction: string;
@@ -75,5 +75,24 @@ export const catalog = [
     exampleOutput: "proceed、proceed_with_caution、block のいずれかを返します。",
     nextAction: "MCPクライアントへ接続し、公開されているリスク確認ツールを呼び出してください。",
     updatedAt: "2026-09-06"
+  },
+  {
+    id: "x402-mcp-integration-kit",
+    name: "x402 MCP Integration Kit — Beta",
+    status: "coming-soon",
+    summary: "A one-time integration kit for developers who want to add one paid, read-only x402 tool to an existing Cloudflare Workers MCP. It packages payment verification, settlement, D1 purchase records, receipts, replay handling, configuration checks, and deployment helpers.",
+    useCases: ["Add one paid x402 tool to an existing Cloudflare Workers MCP", "Sell a read-only MCP result with Base USDC while keeping buyer private keys out of the service", "Start from an integration workflow rather than building payment verification and a purchase ledger from scratch"],
+    keywords: ["x402", "mcp", "integration", "kit", "cloudflare", "workers", "d1", "usdc", "base", "payment", "payments", "settlement", "receipt", "replay", "monetize", "monetization", "paid tool"],
+    limitations: ["Checkout is not yet available while Gumroad and Stripe verification is completed", "No hosting, managed dashboard, subscription management, customer-fund custody, custom implementation, or revenue guarantee", "The kit is for one paid, read-only MCP tool and requires the buyer's own Cloudflare account, Base USDC receiving wallet, and sellable tool result"],
+    freeOffer: "Product scope and buyer requirements are published in the catalog. Checkout opens after the payment-platform verification is complete.",
+    paidOffer: "$19 USD, one-time Beta purchase. Downloadable source ZIP with an x402 paid-tool integration helper, Base Sepolia and Base Mainnet USDC configuration, x402 verify and settlement flow, D1 purchase ledger, replay handling, payment receipts, preflight, migration and deploy helpers, plus a free-plus-paid MCP example.",
+    connectionType: "checkout",
+    connectionUrl: null,
+    docsUrl: null,
+    sourceUrl: null,
+    exampleInput: "I have a Cloudflare Workers MCP and want to add one paid read-only tool that settles in Base USDC with x402.",
+    exampleOutput: "The catalog returns the Integration Kit scope, buyer requirements, $19 Beta price, and checkout availability. It does not claim that checkout is open before the public Gumroad URL exists.",
+    nextAction: "Review the scope and buyer requirements. Wait for the public Gumroad checkout URL before attempting a purchase.",
+    updatedAt: "2026-09-10"
   }
 ] as const satisfies readonly Product[];

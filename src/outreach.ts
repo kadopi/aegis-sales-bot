@@ -25,20 +25,27 @@ const SELF_AGENT_CARD = "https://aegis-sales-bot.kadopi.workers.dev/.well-known/
 
 export async function runOutreach(db: D1Database, enabled: string | undefined, fetcher: typeof fetch = fetch): Promise<void> {
   if (enabled !== "true") return;
+  let registryCandidateCount = 0;
+  try {
+    const registryResponse = await fetcher(REGISTRY_URL);
+    if (!registryResponse.ok) throw new Error(`registry_fetch_failed:${registryResponse.status}`);
+    const registry = await registryResponse.json() as { agents?: unknown };
+    const candidates = Array.isArray(registry.agents) ? registry.agents.filter(isRegistryAgent) : [];
+    registryCandidateCount = candidates.length;
 
-  const registryResponse = await fetcher(REGISTRY_URL);
-  if (!registryResponse.ok) throw new Error(`registry_fetch_failed:${registryResponse.status}`);
-  const registry = await registryResponse.json() as { agents?: unknown };
-  const candidates = Array.isArray(registry.agents) ? registry.agents.filter(isRegistryAgent) : [];
+    for (const candidate of candidates) {
+      const target = await qualifyTarget(candidate, fetcher);
+      if (!target) continue;
+      const inserted = await reserveTarget(db, target);
+      if (!inserted) continue;
 
-  for (const candidate of candidates) {
-    const target = await qualifyTarget(candidate, fetcher);
-    if (!target) continue;
-    const inserted = await reserveTarget(db, target);
-    if (!inserted) continue;
-
-    await sendHearing(db, target, fetcher);
-    return;
+      const result = await sendHearing(db, target, fetcher);
+      await recordOutreachRun(db, result, registryCandidateCount, target.id);
+      return;
+    }
+    await recordOutreachRun(db, "no_candidate", registryCandidateCount);
+  } catch {
+    await recordOutreachRun(db, "failed", registryCandidateCount);
   }
 }
 
@@ -92,7 +99,7 @@ async function reserveTarget(db: D1Database, target: OutboundTarget): Promise<bo
   return result.meta.changes === 1;
 }
 
-async function sendHearing(db: D1Database, target: OutboundTarget, fetcher: typeof fetch): Promise<void> {
+async function sendHearing(db: D1Database, target: OutboundTarget, fetcher: typeof fetch): Promise<"sent" | "survey_received" | "rejected" | "failed"> {
   const taskId = `aegis-outreach-${target.id}`;
   const body = {
     jsonrpc: "2.0",
@@ -111,14 +118,23 @@ async function sendHearing(db: D1Database, target: OutboundTarget, fetcher: type
     const response = await fetcher(target.endpointUrl, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
     const survey = response.ok ? await readOutboundSurvey(response, taskId) : null;
     if (survey) await recordSurveyResponses(db, survey);
+    const result = survey ? "survey_received" : response.ok ? "sent" : "rejected";
     await db.prepare(
       "UPDATE outreach_attempts SET sent_at = ?, status = ?, http_status = ? WHERE target_id = ?"
-    ).bind(new Date().toISOString(), survey ? "survey_received" : response.ok ? "sent" : "rejected", response.status, target.id).run();
+    ).bind(new Date().toISOString(), result, response.status, target.id).run();
+    return result;
   } catch {
     await db.prepare(
       "UPDATE outreach_attempts SET sent_at = ?, status = 'failed' WHERE target_id = ?"
     ).bind(new Date().toISOString(), target.id).run();
+    return "failed";
   }
+}
+
+async function recordOutreachRun(db: D1Database, result: "sent" | "survey_received" | "rejected" | "failed" | "no_candidate", registryCandidateCount: number, targetId?: string): Promise<void> {
+  await db.prepare(
+    "INSERT INTO outreach_runs (id, ran_at, result, registry_candidate_count, target_id) VALUES (?, ?, ?, ?, ?)"
+  ).bind(crypto.randomUUID(), new Date().toISOString(), result, registryCandidateCount, targetId ?? null).run();
 }
 
 async function readOutboundSurvey(response: Response, taskId: string): Promise<SurveySubmission | null> {

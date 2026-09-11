@@ -36,7 +36,9 @@ describe("public HTTP routes", () => {
   it("serves the catalog", async () => {
     const response = await worker.fetch(incomingRequest("https://example.test/products.json"), env, ctx);
     expect(response.status).toBe(200);
-    expect((await response.json() as { products: unknown[] }).products).toHaveLength(3);
+    const products = (await response.json() as { products: Array<{ id: string; status: string; connectionUrl: string | null }> }).products;
+    expect(products).toHaveLength(4);
+    expect(products.find((product) => product.id === "x402-mcp-integration-kit")).toMatchObject({ status: "coming-soon", connectionUrl: null });
   });
 
   it("returns a JSON recommendation", async () => {
