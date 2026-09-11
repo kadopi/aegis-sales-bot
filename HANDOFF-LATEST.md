@@ -64,11 +64,16 @@
 - 一意な `outreach_attempts.target_id` により、同じ候補への再送を防ぐ。
 - 送信はCron実行ごとに初回ヒアリング1件だけ。支払い、登録、注文、追送はしない。
 - 返信本文と候補説明は保存しない。D1には宛先、時刻、結果コードだけを保存する。
-- 設定ファイルの初期値は `OUTREACH_ENABLED=false`。本番は承認済みのCLI変数で `true` を設定済み。
+- `OUTREACH_ENABLED=true` は設定ファイルと本番Workerの両方で有効。将来の再配備で送信を停止しない。
 - `migrations/0004_create_outreach_attempts.sql` と `test/outreach.test.ts` を追加。
 - `npm run check`、`npm test`（20 tests）、`wrangler deploy --dry-run` を確認。
 - `944e0e4` をpush済み。Remote D1 migration `0004` を適用し、本番Version ID `d30cd21d-7570-4186-9975-d0a6636e323a` を配備済み。
-- Cronは毎日 `0 2 * * *` UTC。本番Agent Cardはv0.2.0と自律ヒアリングの保存境界を返すことを確認。
+- Cronは毎日 `0 23 * * *`、`0 5 * * *`、`0 11 * * *` UTC（8:00／14:00／20:00 JST）。各実行は初回ヒアリング1件だけ。
+
+## 2026-09-11 自律ヒアリング頻度（本番有効）
+- 承認により、初回ヒアリングを1日1件から1日3件へ変更した。対象は既存どおり公開・認証不要・用途適合の外部A2A候補だけで、同一候補への再送はしない。
+- `npm run check`、`npm test`（22 tests）、`wrangler deploy --dry-run` が成功。
+- 本番Version ID `b3a9d720-f2d9-447b-b7ab-6848fe559ca1`。Cron 3件と`OUTREACH_ENABLED=true`を`wrangler versions view`で確認。
 
 ## 2026-09-10 同意済み返信の保存（本番有効）
 - 自律ヒアリングの文面に任意の `aegis_survey` JSON形式を追加した。
