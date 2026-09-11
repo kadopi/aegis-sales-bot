@@ -101,3 +101,5 @@
 ## 2026-09-11 ClawHub skill（ローカル準備）
 - `openclaw-skill/aegis-japan-tourism-entry/SKILL.md` を追加。無料のJapan Ruleプレビューから始める指示、A2A/HTTP/MCPの接続先、購入・予約・申請を独断実行しない境界を含む。
 - 依存スクリプト、秘密情報、実行コードを含まない最小スキル。ClawHub公開には別途ログインとpublish承認が必要。
+- GitHubへは `478b28b feat: add OpenClaw tourism entry skill` としてpush済み。ClawHub CLI dry-runは `would-publish`、slug `aegis-japan-tourism-entry`、version `1.0.0`、1ファイルで成功。
+- ClawHub公開者の認証は未完了。`npx --yes clawhub login --device --no-browser` が端末認証コードを返さず、`whoami` は未ログイン。実公開は未実施。
