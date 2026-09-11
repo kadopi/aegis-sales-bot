@@ -98,8 +98,11 @@
 - OpenClaw側のpeer tokenは同利用者の受信保護用であり、Aegisへ送らない。Sales Botは公開no-auth A2A endpointのため、設定例に`outboundToken`は置かない。
 - 外部の投稿、掲載、OpenClaw gatewayへの接続、メッセージ送信、デプロイは未実施。公開にはcommit・pushが必要。
 
-## 2026-09-11 ClawHub skill（ローカル準備）
+## 2026-09-11 ClawHub skill（公開試行）
 - `openclaw-skill/aegis-japan-tourism-entry/SKILL.md` を追加。無料のJapan Ruleプレビューから始める指示、A2A/HTTP/MCPの接続先、購入・予約・申請を独断実行しない境界を含む。
 - 依存スクリプト、秘密情報、実行コードを含まない最小スキル。ClawHub公開には別途ログインとpublish承認が必要。
 - GitHubへは `478b28b feat: add OpenClaw tourism entry skill` としてpush済み。ClawHub CLI dry-runは `would-publish`、slug `aegis-japan-tourism-entry`、version `1.0.0`、1ファイルで成功。
-- ClawHub公開者の認証は未完了。`npx --yes clawhub login --device --no-browser` が端末認証コードを返さず、`whoami` は未ログイン。実公開は未実施。
+- ClawHub Webで`@kadopi`としてGitHub連携を完了。MIT-0を受諾し、公開要求を送信した。
+- ClawHubは`Review selected`と公開で`Server Error Called by client`が断続的に発生したが、新しいChromeタブで再実行して成功した。
+- `Aegis Japan Tourism Entry` をClawHubへ公開済み: `https://clawhub.ai/kadopi/aegis-japan-tourism-entry`。カテゴリはIntegrations / Research / Lifestyle、トピックはjapan-tourism / travel-business / a2a / mcp。
+- ClawHubへ障害報告をGitHub Issue [#3666](https://github.com/openclaw/clawhub/issues/3666) として送信済み。失敗時の再現手順に加え、同一環境での断続的な成功も追記した。
