@@ -33,7 +33,7 @@ describe("outreach discovery", () => {
     const fetcher = async (url: RequestInfo | URL, init?: RequestInit) => {
       requests.push({ url: String(url), init });
       if (String(url).includes("api.a2a-registry.org")) return Response.json({ agents: [{
-        id: "target-1", displayName: "Research Market", description: "Business discovery and research", targetAudience: "Business", visibility: "public", manifestUrl: "https://target.example/.well-known/agent-card.json"
+        id: "target-1", displayName: "Workflow Helper", description: "Workflow automation for commercial teams", targetAudience: "Business", visibility: "public", manifestUrl: "https://target.example/.well-known/agent-card.json"
       }] });
       if (String(url).includes("agent-card")) return Response.json({ securityRequirements: [], supportedInterfaces: [{ url: "https://target.example/a2a", protocolBinding: "JSONRPC", protocolVersion: "1.0" }] });
       return Response.json({ result: { message: { parts: [{ data: { aegis_survey: { consent: true, answers: [

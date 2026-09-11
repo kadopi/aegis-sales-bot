@@ -75,6 +75,12 @@
 - `npm run check`、`npm test`（22 tests）、`wrangler deploy --dry-run` が成功。
 - 本番Version ID `b3a9d720-f2d9-447b-b7ab-6848fe559ca1`。Cron 3件と`OUTREACH_ENABLED=true`を`wrangler versions view`で確認。
 
+## 2026-09-11 営業停止設定の監査
+- 本番Workerの`OUTREACH_ENABLED=true`、Cron 3件、`scheduled` handlerを確認。営業を一律停止する不要なフラグはない。
+- 送信先の公開・認証不要・Business・JSON-RPC 1.0条件、および同一候補の再送禁止は現在も有効。用途語フィルタは広いニーズ探索のため撤去し、用途にかかわらず公開Business A2A候補を聞く。
+- `outreach_runs`は存在するが現時点の保存件数は0件、`outreach_attempts`は1件。新しいCron実行後に実行記録が入るか観測する。
+- 本番Version ID `8df49023-aa7f-4bfd-8547-bb09226ab2d3`へ配備済み。Cron 3件と`OUTREACH_ENABLED=true`、`/health`を確認。
+
 ## 2026-09-10 同意済み返信の保存（本番有効）
 - 自律ヒアリングの文面に任意の `aegis_survey` JSON形式を追加した。
 - 相手が `consent: true` と既知の質問IDを返した場合だけ、既存 `survey_responses` へ保存する。

@@ -20,7 +20,6 @@ type OutboundTarget = {
 };
 
 const REGISTRY_URL = "https://api.a2a-registry.org/public/agents?page=1&sort=newest";
-const DISCOVERY_TERMS = /tourism|travel|marketplace|business|research|discovery|procurement|commerce/i;
 const SELF_AGENT_CARD = "https://aegis-sales-bot.kadopi.workers.dev/.well-known/agent-card.json";
 
 export async function runOutreach(db: D1Database, enabled: string | undefined, fetcher: typeof fetch = fetch): Promise<void> {
@@ -61,7 +60,6 @@ function isRegistryAgent(value: unknown): value is RegistryAgent {
 async function qualifyTarget(candidate: RegistryAgent, fetcher: typeof fetch): Promise<OutboundTarget | null> {
   if (candidate.visibility !== "public" || candidate.targetAudience !== "Business" || !candidate.manifestUrl) return null;
   if (candidate.manifestUrl === SELF_AGENT_CARD) return null;
-  if (!DISCOVERY_TERMS.test(candidate.description ?? "")) return null;
   if (!isSafeHttpsUrl(candidate.manifestUrl)) return null;
 
   const cardResponse = await fetcher(candidate.manifestUrl);
