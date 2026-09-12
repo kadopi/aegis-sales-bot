@@ -80,6 +80,8 @@
 - 送信先の公開・認証不要・Business・JSON-RPC 1.0条件、および同一候補の再送禁止は現在も有効。用途語フィルタは広いニーズ探索のため撤去し、用途にかかわらず公開Business A2A候補を聞く。
 - `outreach_runs`は存在するが現時点の保存件数は0件、`outreach_attempts`は1件。新しいCron実行後に実行記録が入るか観測する。
 - 本番Version ID `8df49023-aa7f-4bfd-8547-bb09226ab2d3`へ配備済み。Cron 3件と`OUTREACH_ENABLED=true`、`/health`を確認。
+- 任意の `aegis_outreach_status.outcome`（`interested` / `not_interested` / `unsupported`）だけを`outreach_attempts.response_signal`へ保存する。返信本文、自由記述、会話履歴は保存しない。
+- 本番D1 migration `0006` を適用し、本番Version ID `0189dc25-be19-4169-b1c8-bb1017057a5d`へ配備済み。Cron 3件と`OUTREACH_ENABLED=true`、`/health`を確認。
 
 ## 2026-09-10 同意済み返信の保存（本番有効）
 - 自律ヒアリングの文面に任意の `aegis_survey` JSON形式を追加した。

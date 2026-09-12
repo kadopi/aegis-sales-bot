@@ -19,6 +19,8 @@ type OutboundTarget = {
   endpointUrl: string;
 };
 
+type ResponseSignal = "interested" | "not_interested" | "unsupported";
+
 const REGISTRY_URL = "https://api.a2a-registry.org/public/agents?page=1&sort=newest";
 const SELF_AGENT_CARD = "https://aegis-sales-bot.kadopi.workers.dev/.well-known/agent-card.json";
 
@@ -107,19 +109,19 @@ async function sendHearing(db: D1Database, target: OutboundTarget, fetcher: type
       message: {
         messageId: crypto.randomUUID(),
         role: "ROLE_USER",
-        parts: [{ text: "Hello. Aegis Sales Bot is conducting a short agent-to-agent discovery interview. What business capability is currently difficult for your users or agents to obtain programmatically? We are especially researching country-entry workflows: official-source preparation, tourism-business research, local partner discovery, and payment-ready service access. If a Japan-related MCP, API, or verified information service would help, please tell us what outcome you need. No sign-up, payment, order, or follow-up is requested. To permit storage for product analysis, include one JSON data part: { \"aegis_survey\": { \"consent\": true, \"answers\": [{ \"questionId\": \"desired_service\", \"answer\": \"your answer\" }, { \"questionId\": \"desired_capability\", \"answer\": \"your answer\" }] } }. Without that explicit consent, your response is not stored." }]
+        parts: [{ text: "Hello. Aegis Sales Bot is conducting a short agent-to-agent discovery interview. What business capability is currently difficult for your users or agents to obtain programmatically? We are especially researching country-entry workflows: official-source preparation, tourism-business research, local partner discovery, and payment-ready service access. If a Japan-related MCP, API, or verified information service would help, please tell us what outcome you need. No sign-up, payment, order, or follow-up is requested. To let us measure the outcome without storing your message text, you may include { \"aegis_outreach_status\": { \"outcome\": \"interested\" } }, using interested, not_interested, or unsupported. To permit storage for product analysis, include one JSON data part: { \"aegis_survey\": { \"consent\": true, \"answers\": [{ \"questionId\": \"desired_service\", \"answer\": \"your answer\" }, { \"questionId\": \"desired_capability\", \"answer\": \"your answer\" }] } }. Without that explicit consent, your response is not stored." }]
       }
     }
   };
 
   try {
     const response = await fetcher(target.endpointUrl, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
-    const survey = response.ok ? await readOutboundSurvey(response, taskId) : null;
-    if (survey) await recordSurveyResponses(db, survey);
-    const result = survey ? "survey_received" : response.ok ? "sent" : "rejected";
+    const outcome = response.ok ? await readOutboundOutcome(response, taskId) : { survey: null, signal: null };
+    if (outcome.survey) await recordSurveyResponses(db, outcome.survey);
+    const result = outcome.survey ? "survey_received" : response.ok ? "sent" : "rejected";
     await db.prepare(
-      "UPDATE outreach_attempts SET sent_at = ?, status = ?, http_status = ? WHERE target_id = ?"
-    ).bind(new Date().toISOString(), result, response.status, target.id).run();
+      "UPDATE outreach_attempts SET sent_at = ?, status = ?, http_status = ?, response_signal = ? WHERE target_id = ?"
+    ).bind(new Date().toISOString(), result, response.status, outcome.signal, target.id).run();
     return result;
   } catch {
     await db.prepare(
@@ -135,17 +137,20 @@ async function recordOutreachRun(db: D1Database, result: "sent" | "survey_receiv
   ).bind(crypto.randomUUID(), new Date().toISOString(), result, registryCandidateCount, targetId ?? null).run();
 }
 
-async function readOutboundSurvey(response: Response, taskId: string): Promise<SurveySubmission | null> {
+async function readOutboundOutcome(response: Response, taskId: string): Promise<{ survey: SurveySubmission | null; signal: ResponseSignal | null }> {
   try {
-    return surveyFromResponse(await response.json(), taskId);
+    return outboundOutcomeFromResponse(await response.json(), taskId);
   } catch {
-    return null;
+    return { survey: null, signal: null };
   }
 }
 
-function surveyFromResponse(payload: unknown, taskId: string): SurveySubmission | null {
+function outboundOutcomeFromResponse(payload: unknown, taskId: string): { survey: SurveySubmission | null; signal: ResponseSignal | null } {
   const survey = findSurvey(payload);
-  return survey ? readSurveySubmission({ params: { message: { taskId }, metadata: { survey } } }) : null;
+  return {
+    survey: survey ? readSurveySubmission({ params: { message: { taskId }, metadata: { survey } } }) : null,
+    signal: findResponseSignal(payload)
+  };
 }
 
 function findSurvey(value: unknown): unknown {
@@ -160,6 +165,26 @@ function findSurvey(value: unknown): unknown {
   if ("aegis_survey" in value) return value.aegis_survey;
   for (const item of Object.values(value)) {
     const found = findSurvey(item);
+    if (found) return found;
+  }
+  return null;
+}
+
+function findResponseSignal(value: unknown): ResponseSignal | null {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = findResponseSignal(item);
+      if (found) return found;
+    }
+    return null;
+  }
+  if (!isRecord(value)) return null;
+  if ("aegis_outreach_status" in value) {
+    const status = value.aegis_outreach_status;
+    if (isRecord(status) && (status.outcome === "interested" || status.outcome === "not_interested" || status.outcome === "unsupported")) return status.outcome;
+  }
+  for (const item of Object.values(value)) {
+    const found = findResponseSignal(item);
     if (found) return found;
   }
   return null;

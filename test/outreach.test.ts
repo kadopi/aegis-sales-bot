@@ -36,7 +36,7 @@ describe("outreach discovery", () => {
         id: "target-1", displayName: "Workflow Helper", description: "Workflow automation for commercial teams", targetAudience: "Business", visibility: "public", manifestUrl: "https://target.example/.well-known/agent-card.json"
       }] });
       if (String(url).includes("agent-card")) return Response.json({ securityRequirements: [], supportedInterfaces: [{ url: "https://target.example/a2a", protocolBinding: "JSONRPC", protocolVersion: "1.0" }] });
-      return Response.json({ result: { message: { parts: [{ data: { aegis_survey: { consent: true, answers: [
+      return Response.json({ result: { message: { parts: [{ data: { aegis_outreach_status: { outcome: "interested" }, aegis_survey: { consent: true, answers: [
         { questionId: "desired_service", answer: "Official source map" },
         { questionId: "desired_capability", answer: "Partner discovery" }
       ] } } }] } } });
@@ -50,6 +50,7 @@ describe("outreach discovery", () => {
     expect(db.statements.filter((statement) => statement.sql.includes("outreach_attempts"))).toHaveLength(2);
     expect(db.statements.filter((statement) => statement.sql.includes("survey_responses"))).toHaveLength(2);
     expect(db.statements.some((statement) => JSON.stringify(statement.values).includes("Official source map"))).toBe(true);
+    expect(db.statements.some((statement) => statement.sql.includes("response_signal") && JSON.stringify(statement.values).includes("interested"))).toBe(true);
     expect(db.statements.some((statement) => statement.sql.includes("outreach_runs") && JSON.stringify(statement.values).includes("survey_received"))).toBe(true);
   });
 
