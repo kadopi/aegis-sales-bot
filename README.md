@@ -6,6 +6,7 @@
 
 - `GET /health` — 稼働状態と版
 - `GET /products.json` — 唯一の中央商品カタログ
+- `GET /products/{productId}` — 商品ごとのAI向け発見ページ。用途、接続URL、最初のMCPツール、無料結果、有料条件、制限を固定JSONで返す
 - `POST /recommend` — 依頼から商品を推薦
 - `POST /a2a` — A2A JSON-RPCの `SendMessage` で用途確認・推薦
 - `GET /.well-known/agent-card.json` — Agent Card
@@ -18,6 +19,8 @@ curl -X POST http://localhost:8787/recommend \
 ```
 
 `request`（または `purpose`）を送ると、`recommendedProduct`、選定理由、適合度、無料・有料オファー、接続先、次の操作を固定JSONで返します。カタログに適合しない依頼は `fit: "none"` と全商品一覧を返し、無理に推薦しません。
+
+現在の公開商品は、`/products/japan-rulewatch`、`/products/x402-mcp-starter`、`/products/agent-card-health-check` です。Japan Ruleの支払先と購入条件は、常に下流MCPの `get_commercial_terms` から確認します。
 
 Japan Ruleの有料観光エントリー準備パックは、事業者・委任を受けたAIエージェント向けのBase Mainnet 5 USDC商品です。営業botは接続案内だけを行い、購入条件の確認、決済、配信はJapan Rule側で行います。
 

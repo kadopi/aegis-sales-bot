@@ -15,6 +15,8 @@ export type Product = {
   exampleInput: string;
   exampleOutput: string;
   nextAction: string;
+  firstTool: string | null;
+  paidAccess: { price: string; purchaseConditions: string; paymentDestination: string } | null;
   updatedAt: string;
 };
 
@@ -36,6 +38,12 @@ export const catalog = [
     exampleInput: "I am an AI agent acting for a business that wants to launch an experiential tour in Japan. Use the Iya English soba-workshop model case to identify what we need to check first.",
     exampleOutput: "The free MCP call returns a six-person Iya model case, three decision themes, and a paid-delivery preview. The paid pack returns official-source locations, published contact routes, inquiry text, and prioritized next actions after x402 settlement.",
     nextAction: "Connect an MCP client and call search_entry_cases with region_id jp-tokushima-miyoshi-iya, activity food_culture_workshop, and language en. Review the model-case scope and missing facts, then call get_commercial_terms before deciding whether an authorized business should purchase.",
+    firstTool: "search_entry_cases",
+    paidAccess: {
+      price: "5 USDC, one-time",
+      purchaseConditions: "Authorized business principal or delegated AI only; fixed English Iya model-case preparation pack; not a booking, permit, or legal advice.",
+      paymentDestination: "Japan Rule returns the current x402 payment requirements and recipient through get_commercial_terms. Aegis Sales Bot never receives a wallet or payment proof."
+    },
     updatedAt: "2026-09-08"
   },
   {
@@ -55,6 +63,8 @@ export const catalog = [
     exampleInput: "自分のMCPツールをUSDCの呼び出し課金にしたい",
     exampleOutput: "x402 MCP Starterの導入先とセルフホスト手順を返します。",
     nextAction: "GitHub READMEを確認し、導入先Workerで決済設定を行ってください。",
+    firstTool: "validate_x402_config",
+    paidAccess: null,
     updatedAt: "2026-09-06"
   },
   {
@@ -74,6 +84,8 @@ export const catalog = [
     exampleInput: "エージェントが外部APIへ書き込む前にリスクを確認したい",
     exampleOutput: "proceed、proceed_with_caution、block のいずれかを返します。",
     nextAction: "MCPクライアントへ接続し、公開されているリスク確認ツールを呼び出してください。",
+    firstTool: null,
+    paidAccess: null,
     updatedAt: "2026-09-06"
   },
   {
@@ -93,6 +105,8 @@ export const catalog = [
     exampleInput: "I own an A2A agent and want to verify that its Agent Card, endpoint URL, and authentication declaration are ready before another agent connects.",
     exampleOutput: "The MCP returns a fixed result such as connectable, auth_required, configuration_mismatch, or unreachable, with the declared and observed connection facts.",
     nextAction: "Connect an MCP client and call diagnose_agent_card only for an agent you own or are explicitly authorized to connect to.",
+    firstTool: "diagnose_agent_card",
+    paidAccess: null,
     updatedAt: "2026-09-13"
   },
   {
@@ -112,6 +126,12 @@ export const catalog = [
     exampleInput: "I have a Cloudflare Workers MCP and want to add one paid read-only tool that settles in Base USDC with x402.",
     exampleOutput: "The catalog returns the Integration Kit scope, buyer requirements, $19 Beta price, and checkout availability. It does not claim that checkout is open before the public Gumroad URL exists.",
     nextAction: "Review the scope and buyer requirements. Wait for the public Gumroad checkout URL before attempting a purchase.",
+    firstTool: null,
+    paidAccess: {
+      price: "$19 USD, one-time Beta purchase",
+      purchaseConditions: "Checkout is not open until the public Gumroad URL is published; buyer needs their own Cloudflare account, Base USDC receiving wallet, and sellable read-only tool result.",
+      paymentDestination: "Not available until the public checkout URL is published."
+    },
     updatedAt: "2026-09-10"
   }
 ] as const satisfies readonly Product[];

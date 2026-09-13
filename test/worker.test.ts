@@ -48,6 +48,29 @@ describe("public HTTP routes", () => {
     expect(products.find((product) => product.id === "agent-card-health-check")).toMatchObject({ status: "public", connectionUrl: "https://agent-card-health-check.kadopi.workers.dev/mcp" });
   });
 
+  it("serves a concise AI discovery page for each public product", async () => {
+    const japanRule = await worker.fetch(incomingRequest("https://example.test/products/japan-rulewatch"), env, ctx);
+    expect(japanRule.status).toBe(200);
+    expect(await japanRule.json()).toMatchObject({
+      id: "japan-rulewatch",
+      connection: { url: "https://japan-rulewatch-mcp-mainnet.kadopi.workers.dev/mcp" },
+      firstTool: "search_entry_cases",
+      paidAccess: { price: "5 USDC, one-time" }
+    });
+
+    const x402Starter = await worker.fetch(incomingRequest("https://example.test/products/x402-mcp-starter"), env, ctx);
+    expect(await x402Starter.json()).toMatchObject({ id: "x402-mcp-starter", firstTool: "validate_x402_config", paidAccess: null });
+
+    const healthCheck = await worker.fetch(incomingRequest("https://example.test/products/agent-card-health-check"), env, ctx);
+    expect(await healthCheck.json()).toMatchObject({ id: "agent-card-health-check", firstTool: "diagnose_agent_card", paidAccess: null });
+  });
+
+  it("returns 404 for an unknown product discovery page", async () => {
+    const response = await worker.fetch(incomingRequest("https://example.test/products/unknown"), env, ctx);
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ error: "product_not_found" });
+  });
+
   it("returns a JSON recommendation", async () => {
     const response = await worker.fetch(incomingRequest("https://example.test/recommend", { method: "POST", body: JSON.stringify({ request: "x402 USDC payment for MCP" }) }), env, ctx);
     expect(response.status).toBe(200);

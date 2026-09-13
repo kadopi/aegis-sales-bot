@@ -184,3 +184,12 @@
 - Sales Botは接続案内だけを返し、診断を実行せず、Agent Card、認証情報、入力、診断結果、相手の応答を保存しない。
 - Agent Card、A2A、接続先、認証設定の依頼で推薦し、対象の所有または明示的な接続許可を要求する。
 - 本番Version ID `3824bb80-936f-4982-891c-eada0c8adff6`へ配備済み。`/products.json`の5商品と、A2A Agent Card接続依頼での`fit: high`推薦を確認。
+## 2026-09-13 商品別AI発見ページ
+- `GET /products/{productId}` を追加し、商品を接続前に単体で判断できる固定JSONを返す。
+- 公開対象はJapan Rule、x402 MCP Starter、Agent Card Health Check。
+- 各ページは利用場面、MCP接続URL、最初のツール、無料結果、有料条件、制限、資料URL、次の操作を含む。
+- Japan Ruleは`search_entry_cases`から開始。5 USDCの条件と決済先は、下流MCPの`get_commercial_terms`から最新情報を確認する。
+- x402 MCP Starterは`validate_x402_config`から開始する無料セルフホスト用スターター。
+- Agent Card Health Checkは`diagnose_agent_card`から開始する無料・保存なしの接続準備確認。
+- `npm run check`と`npm test`が成功（33テスト）。
+- 本番配備後に3 URLの200応答と主要フィールドを確認する。

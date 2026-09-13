@@ -19,13 +19,20 @@ export default {
         track(ctx, env, request, "catalog_view");
         return json({ version: VERSION, products: catalog });
       }
+      if (request.method === "GET" && url.pathname.startsWith("/products/")) {
+        const productId = url.pathname.slice("/products/".length);
+        const product = catalog.find((item) => item.id === productId);
+        if (!product) return json({ error: "product_not_found" }, 404);
+        track(ctx, env, request, "catalog_view", product.id);
+        return json(discoveryPage(url.origin, product));
+      }
       if (request.method === "GET" && url.pathname === "/.well-known/agent-card.json") return json(agentCard(url.origin));
       if (request.method === "POST" && url.pathname === "/recommend") return await handleRecommendation(request, env, ctx);
       if (request.method === "POST" && url.pathname === "/a2a") return await handleA2ARequest(request, env, ctx);
       if (request.method === "GET" && url.pathname === "/") return json({
         name: "Aegis Sales Bot", version: VERSION,
         description: "Deterministic product discovery and connection guidance for AI agents.",
-        endpoints: ["/health", "/products.json", "/recommend", "/a2a", "/.well-known/agent-card.json"]
+        endpoints: ["/health", "/products.json", "/products/{productId}", "/recommend", "/a2a", "/.well-known/agent-card.json"]
       });
       return json({ error: "not_found" }, 404);
     } catch {
@@ -119,8 +126,28 @@ function agentCard(origin: string) {
       tags: ["catalog", "product-discovery", "a2a", "deterministic", "mcp", "x402", "japan-tourism"],
       examples: ["Find a service for Japanese ecommerce return-policy research", "I am an AI agent helping a business prepare to launch an experiential tour in Japan", "Add USDC usage payments to an MCP server"]
     }],
-    endpoints: { catalog: `${origin}/products.json`, recommend: `${origin}/recommend`, a2a: `${origin}/a2a`, health: `${origin}/health` },
+    endpoints: { catalog: `${origin}/products.json`, productPage: `${origin}/products/{productId}`, recommend: `${origin}/recommend`, a2a: `${origin}/a2a`, health: `${origin}/health` },
     limitations: ["The bot does not process payments or provide each product's service.", "The A2A endpoint keeps only a task stage for up to seven days to support a short qualification conversation. It stores survey answers only after explicit consent and does not retain message content. When outbound discovery is enabled, the scheduled worker records at most one newly qualified public, no-auth A2A endpoint per run. Contact requires a separate, target-specific approval."]
+  };
+}
+
+function discoveryPage(origin: string, product: typeof catalog[number]) {
+  return {
+    schema: "https://aegis-sales-bot.kadopi.workers.dev/schemas/product-discovery-v1",
+    id: product.id,
+    name: product.name,
+    status: product.status,
+    useWhen: product.useCases,
+    connection: product.connectionUrl ? { type: product.connectionType, url: product.connectionUrl } : null,
+    firstTool: product.firstTool,
+    freeResult: product.freeOffer,
+    paidAccess: product.paidAccess,
+    limitations: product.limitations,
+    docsUrl: product.docsUrl,
+    sourceUrl: product.sourceUrl,
+    nextAction: product.nextAction,
+    catalogUrl: `${origin}/products.json`,
+    updatedAt: product.updatedAt
   };
 }
 
