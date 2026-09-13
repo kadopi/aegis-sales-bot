@@ -59,7 +59,7 @@ describe("public HTTP routes", () => {
       discovery: {
         agentCard: "https://japan-rulewatch-mcp-mainnet.kadopi.workers.dev/.well-known/agent-card.json",
         mcpRegistry: { status: "published" },
-        clawHubSkill: { status: "prepared", url: null }
+        clawHubSkill: { status: "published", url: "https://clawhub.ai/kadopi/japan-rulewatch" }
       }
     });
 
@@ -67,7 +67,7 @@ describe("public HTTP routes", () => {
     expect(await x402Starter.json()).toMatchObject({ id: "x402-mcp-starter", firstTool: "validate_x402_config", paidAccess: null, discovery: { mcpRegistry: { status: "published" }, clawHubSkill: { status: "prepared", url: null } } });
 
     const healthCheck = await worker.fetch(incomingRequest("https://example.test/products/agent-card-health-check"), env, ctx);
-    expect(await healthCheck.json()).toMatchObject({ id: "agent-card-health-check", firstTool: "diagnose_agent_card", paidAccess: null, discovery: { mcpRegistry: { status: "prepared" }, clawHubSkill: { status: "prepared", url: null } } });
+    expect(await healthCheck.json()).toMatchObject({ id: "agent-card-health-check", firstTool: "diagnose_agent_card", paidAccess: null, discovery: { mcpRegistry: { status: "prepared" }, clawHubSkill: { status: "published", url: "https://clawhub.ai/kadopi/agent-card-health-check" } } });
   });
 
   it("returns 404 for an unknown product discovery page", async () => {

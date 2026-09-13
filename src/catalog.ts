@@ -54,7 +54,7 @@ export const catalog = [
       agentCardUrl: "https://japan-rulewatch-mcp-mainnet.kadopi.workers.dev/.well-known/agent-card.json",
       githubReadmeUrl: "https://github.com/kadopi/japan-rulewatch-mcp/blob/main/README.md",
       mcpRegistry: { status: "published", url: "https://registry.modelcontextprotocol.io/?q=io.github.kadopi%2Fjapan-rulewatch-mcp" },
-      clawHubSkill: { status: "prepared", url: null, sourceUrl: "https://github.com/kadopi/japan-rulewatch-mcp/blob/main/openclaw/SKILL.md" }
+      clawHubSkill: { status: "published", url: "https://clawhub.ai/kadopi/japan-rulewatch", sourceUrl: "https://github.com/kadopi/japan-rulewatch-mcp/blob/main/openclaw/SKILL.md" }
     },
     updatedAt: "2026-09-08"
   },
@@ -129,7 +129,7 @@ export const catalog = [
       agentCardUrl: "https://agent-card-health-check.kadopi.workers.dev/.well-known/agent-card.json",
       githubReadmeUrl: "https://github.com/kadopi/my-projects/blob/main/apps/agent-card-health-check/README.md",
       mcpRegistry: { status: "prepared", url: "https://registry.modelcontextprotocol.io/?q=io.github.kadopi%2Fagent-card-health-check" },
-      clawHubSkill: { status: "prepared", url: null, sourceUrl: "https://github.com/kadopi/my-projects/blob/main/apps/agent-card-health-check/openclaw/SKILL.md" }
+      clawHubSkill: { status: "published", url: "https://clawhub.ai/kadopi/agent-card-health-check", sourceUrl: "https://github.com/kadopi/my-projects/blob/main/apps/agent-card-health-check/openclaw/SKILL.md" }
     },
     updatedAt: "2026-09-13"
   },
