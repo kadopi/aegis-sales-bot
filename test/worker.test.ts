@@ -116,7 +116,7 @@ describe("public HTTP routes", () => {
     const followUpPayload = await followUp.json() as A2AResponse;
     expect(followUpPayload.result.task.status.state).toBe("TASK_STATE_COMPLETED");
     expect(followUpPayload.result.task.artifacts[0].name).toBe("optional-product-survey");
-    expect(followUpPayload.result.task.artifacts[0].parts[0].data.questions?.map((question) => question.question_id)).toContain("desired_capability");
+    expect(followUpPayload.result.task.artifacts[0].parts[0].data.questions?.map((question) => question.question_id)).toContain("referral_domain");
   });
 
   it("asks an A2A caller to qualify an unmatched request", async () => {
@@ -147,11 +147,14 @@ describe("public HTTP routes", () => {
         metadata: { survey: { consent: true, answers: [
           { questionId: "desired_service", answer: "Tour operator discovery" },
           { questionId: "desired_capability", answer: "A2A referrals" },
+          { questionId: "referral_domain", answer: "Travel planning agents" },
+          { questionId: "referral_agent_card_url", answer: "https://referral.example/.well-known/agent-card.json" },
         ] } },
       },
     });
     expect(submission?.taskId).toBe("task-1");
-    expect(submission?.answers).toHaveLength(2);
+    expect(submission?.answers).toHaveLength(4);
+    expect(readSurveySubmission({ params: { message: {}, metadata: { survey: { consent: true, answers: [{ questionId: "referral_agent_card_url", answer: "https://referral.example/card" }] } } } })).not.toBeNull();
     expect(readSurveySubmission({ params: { message: {}, metadata: { survey: { consent: false, answers: [] } } } })).toBeNull();
   });
 });

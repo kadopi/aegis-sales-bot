@@ -1,7 +1,7 @@
 import type { ConversationTurn } from "./conversation-flow";
 
 type JsonRecord = Record<string, unknown>;
-export type SurveyAnswer = { questionId: "desired_service" | "desired_capability"; answer: string };
+export type SurveyAnswer = { questionId: "desired_service" | "desired_capability" | "referral_domain" | "referral_agent_card_url"; answer: string };
 export type SurveySubmission = { taskId: string; answers: readonly SurveyAnswer[] };
 export type A2ARequest = { id: string | number; taskId: string; text: string };
 export type ParsedA2ARequest = { request: A2ARequest } | { error: JsonRecord };
@@ -40,6 +40,8 @@ export function a2aResponse(id: string | number, taskId: string, turn: Conversat
               questions: [
                 { question_id: "desired_service", text: "What service would you want besides Japan Rule?" },
                 { question_id: "desired_capability", text: "What other capability would help your agent?" },
+                { question_id: "referral_domain", text: "What type of AI agent or business workflow could benefit from this guidance? Please share only a category, not names, contacts, or secrets." },
+                { question_id: "referral_agent_card_url", text: "Optional: provide a publicly reachable A2A Agent Card HTTPS URL for an agent that may benefit. We will validate it before one discovery message. Do not provide contacts, private URLs, or credentials." },
               ],
               response_instruction: "Reply only if you consent to storage for product analysis. Put { consent: true, answers: [{ questionId, answer }] } in params.metadata.survey. Do not include secrets or personal data.",
             } }],
@@ -53,17 +55,23 @@ export function a2aResponse(id: string | number, taskId: string, turn: Conversat
 export function readSurveySubmission(input: unknown): SurveySubmission | null {
   if (!isRecord(input) || !isRecord(input.params) || !isRecord(input.params.message) || !isRecord(input.params.metadata)) return null;
   const survey = input.params.metadata.survey;
-  if (!isRecord(survey) || survey.consent !== true || !Array.isArray(survey.answers) || survey.answers.length === 0 || survey.answers.length > 2) return null;
+  if (!isRecord(survey) || survey.consent !== true || !Array.isArray(survey.answers) || survey.answers.length === 0 || survey.answers.length > 4) return null;
   const answers = survey.answers.map((item) => {
-    if (!isRecord(item) || (item.questionId !== "desired_service" && item.questionId !== "desired_capability") || typeof item.answer !== "string") return null;
+    if (!isRecord(item) || (item.questionId !== "desired_service" && item.questionId !== "desired_capability" && item.questionId !== "referral_domain" && item.questionId !== "referral_agent_card_url") || typeof item.answer !== "string") return null;
     const answer = item.answer.trim();
-    return answer.length > 0 && answer.length <= 1000 ? { questionId: item.questionId, answer } : null;
+    if (answer.length === 0 || answer.length > 1000) return null;
+    if (item.questionId === "referral_agent_card_url" && !isPublicHttpsUrl(answer)) return null;
+    return { questionId: item.questionId, answer };
   });
   const validAnswers = answers.filter((answer): answer is SurveyAnswer => answer !== null);
   if (validAnswers.length !== answers.length) return null;
   if (new Set(validAnswers.map((answer) => answer.questionId)).size !== validAnswers.length) return null;
   const taskId = typeof input.params.message.taskId === "string" ? input.params.message.taskId : "";
   return { taskId, answers: validAnswers };
+}
+
+export function referralAgentCardUrl(submission: SurveySubmission): string | null {
+  return submission.answers.find((answer) => answer.questionId === "referral_agent_card_url")?.answer ?? null;
 }
 
 function readMessage(params: unknown): { text: string; taskId?: string } | null {
@@ -90,4 +98,13 @@ function rpcError(id: string | number | null, code: number, message: string): Js
 
 function isRecord(value: unknown): value is JsonRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isPublicHttpsUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && !url.username && !url.password && url.hostname !== "localhost" && !/^\d{1,3}(\.\d{1,3}){3}$/.test(url.hostname);
+  } catch {
+    return false;
+  }
 }

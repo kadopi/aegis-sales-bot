@@ -3,8 +3,9 @@ import { a2aResponse, parseA2ARequest, readSurveySubmission } from "./a2a";
 export { A2AConversation } from "./a2a-conversation";
 import { recordFunnelMetric, recordMetric, recordSurveyResponses, type MetricEvent } from "./metrics";
 import { observationAudience } from "./observation";
-import { findResponseSignal, runOutreach } from "./outreach";
+import { findResponseSignal, runDiscovery } from "./outreach";
 import { parseRequest, recommend } from "./recommend";
+import { recordReferralCandidate } from "./referrals";
 
 const VERSION = "0.2.0";
 const jsonHeaders = { "content-type": "application/json; charset=utf-8", "x-content-type-options": "nosniff" };
@@ -33,7 +34,7 @@ export default {
     }
   },
   async scheduled(_controller, env, ctx) {
-    ctx.waitUntil(runOutreach(env.DB, env.OUTREACH_ENABLED, env.A2A_CONVERSATIONS));
+    ctx.waitUntil(runDiscovery(env.DB, env.OUTREACH_ENABLED));
   }
 } satisfies ExportedHandler<Env>;
 
@@ -76,6 +77,7 @@ async function handleA2ARequest(request: Request, env: Env, ctx: ExecutionContex
   if (survey) {
     for (const answer of survey.answers) track(ctx, env, request, "survey_response", answer.questionId);
     ctx.waitUntil(recordSurveyResponses(env.DB, survey));
+    ctx.waitUntil(recordReferralCandidate(env.DB, survey));
   }
   return json(response);
 }
@@ -118,7 +120,7 @@ function agentCard(origin: string) {
       examples: ["Find a service for Japanese ecommerce return-policy research", "I am an AI agent helping a business prepare to launch an experiential tour in Japan", "Add USDC usage payments to an MCP server"]
     }],
     endpoints: { catalog: `${origin}/products.json`, recommend: `${origin}/recommend`, a2a: `${origin}/a2a`, health: `${origin}/health` },
-    limitations: ["The bot does not process payments or provide each product's service.", "The A2A endpoint keeps only a task stage for up to seven days to support a short qualification conversation. It stores survey answers only after explicit consent and does not retain message content. When outbound discovery is enabled, the scheduled worker contacts at most one newly qualified public, no-auth A2A endpoint per run and stores only the delivery result."]
+    limitations: ["The bot does not process payments or provide each product's service.", "The A2A endpoint keeps only a task stage for up to seven days to support a short qualification conversation. It stores survey answers only after explicit consent and does not retain message content. When outbound discovery is enabled, the scheduled worker records at most one newly qualified public, no-auth A2A endpoint per run. Contact requires a separate, target-specific approval."]
   };
 }
 

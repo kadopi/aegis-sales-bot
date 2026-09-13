@@ -19,7 +19,7 @@ export function advanceConversation(state: ConversationState | null, text: strin
     return {
       nextState: null,
       status: "TASK_STATE_COMPLETED",
-      message: "Thanks for the reply. Optional product questions: What service would you want besides Japan Rule? What other capability would help your agent? If another AI agent may need this guidance, please share this Sales Bot's public Agent Card with it.",
+      message: "Thanks for the reply. Optional product questions include what service or capability you need, and what type of AI agent or business workflow may benefit. Do not provide names, contacts, or secrets. If another AI agent may need this guidance, share this Sales Bot's public Agent Card or the relevant MCP endpoint with it.",
       recommendation: null,
       includeSurvey: true,
     };

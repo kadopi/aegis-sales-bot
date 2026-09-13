@@ -1,3 +1,15 @@
+## 2026-09-13 探索と送信の分離（ローカル実装）
+- Cronは外部A2Aメッセージを送らず、公開Business候補を`outreach_candidates`へ最大1件ずつ蓄積する。
+- 探索順はGlobal A2A RegistryのBusiness候補、次に稼働中かつ商用関連スキルを持つ第2 A2A Directory候補。
+- 候補は公開HTTPS、認証不要、JSON-RPC 1.0を満たすものだけで、Agent Card URL単位の重複を防ぐ。
+- 送信は候補を確認した後の対象別承認が必要。migration `0008`を本番適用し、本番Version ID `7f9b0767-9c18-4bc8-bd10-91c97fd095bd`へ配備済み。
+
+## 2026-09-13 継続的な営業候補探索（ローカル実装）
+- 既存の1日3回Cronで、従来のGlobal A2A Registryに該当候補がない場合、稼働状態を公開する第2のA2A Directoryも探索する。
+- 第2探索元は、稼働中かつ商用・決済・マーケットプレイス・旅行・金融などの公開スキルを持つ候補だけを扱う。Generalな雑談・案内用途は営業候補にしない。
+- Agent Cardは公開HTTPS、認証不要、JSON-RPC 1.0である場合だけ送信する。Agent Card URL単位で再送を防ぐ。
+- ローカル実装のみ。テストと配備は未実施。
+
 # Aegis Sales Bot handoff
 
 ## 現在地
@@ -98,6 +110,19 @@
 - Durable Objectの短いA2A会話は維持する。保存は相手ID、段階、期限、最終結果だけで、会話本文・決済・納品・成約判定は持たない。
 - 最終結果は`interested`、`not_interested`、`unsupported`。任意アンケートは既存の明示同意条件でのみ保存する。未配備。
 - 本番Version ID `b063641b-0288-4d57-987b-75e4d7f8ab84`へ配備済み。`/health`を確認。外部宛の手動送信はしていない。
+
+## 2026-09-13 適合候補の自律発見（ローカル実装）
+- Cronは公開Agent Cardの発見・適合判定・候補保存だけを行い、A2Aメッセージは送らない。候補ごとの外部送信は明示承認後だけにする。
+- 旅行・日本参入はJapan Rule、調達・決済はx402 MCP Starter、MCP/A2A連携はAgent Card Health Checkへ、公開用途から1商品・1価値仮説だけを対応付ける。不適合なBusiness候補は保存しない。
+- `outreach_candidates`には公開URL、相手ID、接続先、発見元、候補商品、価値仮説、待機状態を保存する。外部返信本文・秘密情報・決済・成約状態は保存しない。
+- 本番D1へmigration `0009`を適用し、`product_id`と`value_hypothesis`列を確認。本番Version ID `2a80f000-781b-4f46-8999-5adb80b84bc7`へ配備済み。`/health`を確認。外部宛の手動送信はしていない。
+
+## 2026-09-13 紹介型ヒアリング（ローカル実装）
+- 任意アンケートに`referral_domain`と公開`referral_agent_card_url`を追加。明示的なアンケート保存同意があるURLだけをD1へ保存する。
+- 次の営業Cronは保留中の紹介候補を通常のレジストリ候補より優先する。公開HTTPS、認証不要、JSON-RPC 1.0、重複なしを確認できた場合だけ1件のヒアリングを送る。不適格候補は送信しない。
+- Cronから先に送るヒアリングにも紹介URLの任意入力例を含め、通常のA2A会話と同じ紹介経路を使えるようにした。
+- 成果報酬、代理販売、決済、納品、会話本文の保存は実装しない。
+- 本番D1 migration `0007`を適用し、本番Version ID `b321b899-6701-4e37-b8b6-b014a28b1b21`へ配備済み。`/health`と`referral_candidates`テーブルの存在を確認。紹介候補はまだなく、手動営業送信はしていない。
 
 ## 2026-09-11 営業停止設定の監査
 - 本番Workerの`OUTREACH_ENABLED=true`、Cron 3件、`scheduled` handlerを確認。営業を一律停止する不要なフラグはない。

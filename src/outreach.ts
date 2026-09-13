@@ -1,3 +1,7 @@
+import { markReferralCandidate, nextReferralCandidate } from "./referrals";
+import { readSurveySubmission, type SurveySubmission } from "./a2a";
+import { recordSurveyResponses } from "./metrics";
+
 type RegistryAgent = {
   id: string;
   displayName: string;
@@ -7,7 +11,19 @@ type RegistryAgent = {
   visibility: string | null;
 };
 
+type ExternalRegistryAgent = {
+  id: string;
+  name: string;
+  description: string | null;
+  wellKnownURI: string | null;
+  is_healthy: boolean | null;
+  skills: unknown;
+  pricing: unknown;
+};
+
 type AgentCard = {
+  name?: unknown;
+  description?: unknown;
   supportedInterfaces?: Array<{ url?: string; protocolBinding?: string; protocolVersion?: string }>;
   securityRequirements?: unknown;
 };
@@ -20,6 +36,11 @@ type OutboundTarget = {
   endpointUrl: string;
 };
 
+type MatchedOffer = {
+  productId: "japan-rulewatch" | "x402-mcp-starter" | "agent-card-health-check";
+  valueHypothesis: string;
+};
+
 type ResponseSignal = "interested" | "not_interested" | "unsupported";
 type OutboundConversation = {
   beginOutbound(input: { peerId: string; proposal: string }): Promise<void>;
@@ -27,14 +48,72 @@ type OutboundConversation = {
 };
 type OutboundConversations = { getByName(name: string): OutboundConversation };
 
-const REGISTRY_URL = "https://api.a2a-registry.org/public/agents?page=1&sort=newest";
+const PRIMARY_REGISTRY_URL = "https://api.a2a-registry.org/public/agents?page=1&sort=newest";
+const SECONDARY_REGISTRY_URL = "https://a2aregistry.org/api/agents?conformance=standard&limit=100&offset=0";
+const BUSINESS_PROFILE = /commerce|commercial|payment|x402|marketplace|procurement|trade|retail|ecommerce|marketing|business|enterprise|sales|tourism|travel|hotel|booking|finance|financial|invoice|legal|insurance|logistics|freight|property|real estate/i;
 const SELF_AGENT_CARD = "https://aegis-sales-bot.kadopi.workers.dev/.well-known/agent-card.json";
+
+export async function runDiscovery(db: D1Database, enabled: string | undefined, fetcher: typeof fetch = fetch): Promise<void> {
+  if (enabled !== "true") return;
+  let registryCandidateCount = 0;
+  try {
+    const registryResponse = await fetcher(PRIMARY_REGISTRY_URL);
+    if (!registryResponse.ok) throw new Error(`registry_fetch_failed:${registryResponse.status}`);
+    const registry = await registryResponse.json() as { agents?: unknown };
+    const candidates = Array.isArray(registry.agents) ? registry.agents.filter(isRegistryAgent) : [];
+    registryCandidateCount = candidates.length;
+
+    for (const candidate of candidates) {
+      const target = await qualifyTarget(candidate, fetcher);
+      if (!target) continue;
+      const offer = matchOffer(target);
+      if (!offer) continue;
+      if (await queueCandidate(db, target, offer, "global_a2a_registry")) {
+        await recordOutreachRun(db, "candidate_found", registryCandidateCount, target.id);
+        return;
+      }
+    }
+
+    const secondaryCandidates = await fetchSecondaryCandidates(fetcher);
+    registryCandidateCount += secondaryCandidates.length;
+    for (const candidate of secondaryCandidates) {
+      const target = await qualifySecondaryTarget(candidate, fetcher);
+      if (!target) continue;
+      const offer = matchOffer(target);
+      if (!offer) continue;
+      if (await queueCandidate(db, target, offer, "a2a_directory")) {
+        await recordOutreachRun(db, "candidate_found", registryCandidateCount, target.id);
+        return;
+      }
+    }
+    await recordOutreachRun(db, "no_candidate", registryCandidateCount);
+  } catch {
+    await recordOutreachRun(db, "failed", registryCandidateCount);
+  }
+}
 
 export async function runOutreach(db: D1Database, enabled: string | undefined, conversations: OutboundConversations, fetcher: typeof fetch = fetch): Promise<void> {
   if (enabled !== "true") return;
   let registryCandidateCount = 0;
   try {
-    const registryResponse = await fetcher(REGISTRY_URL);
+    const referral = await nextReferralCandidate(db);
+    if (referral) {
+      const target = await qualifyReferredTarget(referral.agentCardUrl, fetcher);
+      if (!target) {
+        await markReferralCandidate(db, referral.agentCardUrl, "not_qualified");
+        await recordOutreachRun(db, "no_candidate", 0);
+        return;
+      }
+      const inserted = await reserveTarget(db, target);
+      await markReferralCandidate(db, referral.agentCardUrl, "contacted");
+      if (!inserted) {
+        await recordOutreachRun(db, "no_candidate", 0, target.id);
+        return;
+      }
+      await contactTarget(db, target, conversations, fetcher, 0);
+      return;
+    }
+    const registryResponse = await fetcher(PRIMARY_REGISTRY_URL);
     if (!registryResponse.ok) throw new Error(`registry_fetch_failed:${registryResponse.status}`);
     const registry = await registryResponse.json() as { agents?: unknown };
     const candidates = Array.isArray(registry.agents) ? registry.agents.filter(isRegistryAgent) : [];
@@ -46,16 +125,32 @@ export async function runOutreach(db: D1Database, enabled: string | undefined, c
       const inserted = await reserveTarget(db, target);
       if (!inserted) continue;
 
-      const conversation = conversations.getByName(`aegis-outreach-${target.id}`);
-      await conversation.beginOutbound({ peerId: target.id, proposal: proposalFor(target.description) });
-      const result = await sendHearing(db, target, conversation, fetcher);
-      await recordOutreachRun(db, result, registryCandidateCount, target.id);
+      await contactTarget(db, target, conversations, fetcher, registryCandidateCount);
+      return;
+    }
+
+    const secondaryCandidates = await fetchSecondaryCandidates(fetcher);
+    registryCandidateCount += secondaryCandidates.length;
+    for (const candidate of secondaryCandidates) {
+      const target = await qualifySecondaryTarget(candidate, fetcher);
+      if (!target) continue;
+      const inserted = await reserveTarget(db, target);
+      if (!inserted) continue;
+
+      await contactTarget(db, target, conversations, fetcher, registryCandidateCount);
       return;
     }
     await recordOutreachRun(db, "no_candidate", registryCandidateCount);
   } catch {
     await recordOutreachRun(db, "failed", registryCandidateCount);
   }
+}
+
+async function contactTarget(db: D1Database, target: OutboundTarget, conversations: OutboundConversations, fetcher: typeof fetch, registryCandidateCount: number): Promise<void> {
+  const conversation = conversations.getByName(`aegis-outreach-${target.id}`);
+  await conversation.beginOutbound({ peerId: target.id, proposal: proposalFor(target.description) });
+  const result = await sendHearing(db, target, conversation, fetcher);
+  await recordOutreachRun(db, result, registryCandidateCount, target.id);
 }
 
 function isRegistryAgent(value: unknown): value is RegistryAgent {
@@ -82,6 +177,59 @@ async function qualifyTarget(candidate: RegistryAgent, fetcher: typeof fetch): P
   return { id: candidate.id, name: candidate.displayName, description: candidate.description, agentCardUrl: candidate.manifestUrl, endpointUrl };
 }
 
+async function fetchSecondaryCandidates(fetcher: typeof fetch): Promise<ExternalRegistryAgent[]> {
+  try {
+    const response = await fetcher(SECONDARY_REGISTRY_URL);
+    if (!response.ok) return [];
+    const directory = await response.json() as { agents?: unknown };
+    return Array.isArray(directory.agents) ? directory.agents.filter(isExternalRegistryAgent).filter(isBusinessDirectoryAgent).slice(0, 20) : [];
+  } catch {
+    return [];
+  }
+}
+
+function isExternalRegistryAgent(value: unknown): value is ExternalRegistryAgent {
+  return isRecord(value) && typeof value.id === "string" && typeof value.name === "string" &&
+    (typeof value.description === "string" || value.description === null) &&
+    (typeof value.wellKnownURI === "string" || value.wellKnownURI === null) &&
+    (typeof value.is_healthy === "boolean" || value.is_healthy === null);
+}
+
+function isBusinessDirectoryAgent(agent: ExternalRegistryAgent): boolean {
+  if (agent.is_healthy !== true || !agent.wellKnownURI) return false;
+  const skills = Array.isArray(agent.skills) ? agent.skills.flatMap((skill) => isRecord(skill) && Array.isArray(skill.tags) ? skill.tags.filter((tag): tag is string => typeof tag === "string") : []) : [];
+  const pricing = typeof agent.pricing === "string" ? agent.pricing : "";
+  return BUSINESS_PROFILE.test([agent.name, agent.description ?? "", pricing, ...skills].join(" "));
+}
+
+async function qualifySecondaryTarget(candidate: ExternalRegistryAgent, fetcher: typeof fetch): Promise<OutboundTarget | null> {
+  if (!candidate.wellKnownURI || !isSafeHttpsUrl(candidate.wellKnownURI)) return null;
+  const cardResponse = await fetcher(candidate.wellKnownURI);
+  if (!cardResponse.ok) return null;
+  const card = await cardResponse.json() as AgentCard;
+  if (!isPublicNoAuthCard(card)) return null;
+  const endpointUrl = jsonRpcEndpoint(card);
+  if (!endpointUrl || !isSafeHttpsUrl(endpointUrl)) return null;
+  return { id: `directory:${candidate.id}`, name: candidate.name, description: candidate.description, agentCardUrl: candidate.wellKnownURI, endpointUrl };
+}
+
+async function qualifyReferredTarget(agentCardUrl: string, fetcher: typeof fetch): Promise<OutboundTarget | null> {
+  if (agentCardUrl === SELF_AGENT_CARD || !isSafeHttpsUrl(agentCardUrl)) return null;
+  const cardResponse = await fetcher(agentCardUrl);
+  if (!cardResponse.ok) return null;
+  const card = await cardResponse.json() as AgentCard;
+  if (!isPublicNoAuthCard(card)) return null;
+  const endpointUrl = jsonRpcEndpoint(card);
+  if (!endpointUrl || !isSafeHttpsUrl(endpointUrl)) return null;
+  return {
+    id: `referral:${agentCardUrl}`,
+    name: typeof card.name === "string" && card.name.length > 0 ? card.name.slice(0, 200) : "Referred A2A agent",
+    description: typeof card.description === "string" ? card.description.slice(0, 2_000) : null,
+    agentCardUrl,
+    endpointUrl
+  };
+}
+
 function isPublicNoAuthCard(card: AgentCard): boolean {
   return !Array.isArray(card.securityRequirements) || card.securityRequirements.length === 0;
 }
@@ -100,10 +248,31 @@ function isSafeHttpsUrl(value: string): boolean {
   }
 }
 
+async function queueCandidate(db: D1Database, target: OutboundTarget, offer: MatchedOffer, source: "global_a2a_registry" | "a2a_directory"): Promise<boolean> {
+  const result = await db.prepare(
+    "INSERT INTO outreach_candidates (agent_card_url, target_id, target_name, endpoint_url, product_id, value_hypothesis, source, discovered_at, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending') ON CONFLICT(agent_card_url) DO NOTHING"
+  ).bind(target.agentCardUrl, target.id, target.name, target.endpointUrl, offer.productId, offer.valueHypothesis, source, new Date().toISOString()).run();
+  return result.meta.changes === 1;
+}
+
+function matchOffer(target: OutboundTarget): MatchedOffer | null {
+  const profile = `${target.name} ${target.description ?? ""}`.toLowerCase();
+  if (/tourism|travel|hotel|booking|destination|experience|japan entry/.test(profile)) {
+    return { productId: "japan-rulewatch", valueHypothesis: "A free Japan Rule model-case preview may help this agent identify the first checks for a Japan experiential-tourism entry workflow." };
+  }
+  if (/payment|commerce|marketplace|procurement|trade|retail|ecommerce/.test(profile)) {
+    return { productId: "x402-mcp-starter", valueHypothesis: "A free x402 MCP Starter may help this agent validate a programmatic USDC payment route for an MCP tool." };
+  }
+  if (/\bmcp\b|\ba2a\b|agent card|api|developer|workflow|automation|integration/.test(profile)) {
+    return { productId: "agent-card-health-check", valueHypothesis: "A free Agent Card Health Check may help this agent verify connection readiness before an authorized A2A integration." };
+  }
+  return null;
+}
+
 async function reserveTarget(db: D1Database, target: OutboundTarget): Promise<boolean> {
   const result = await db.prepare(
-    "INSERT INTO outreach_attempts (target_id, target_name, agent_card_url, endpoint_url, selected_at, status) VALUES (?, ?, ?, ?, ?, 'selected') ON CONFLICT(target_id) DO NOTHING"
-  ).bind(target.id, target.name, target.agentCardUrl, target.endpointUrl, new Date().toISOString()).run();
+    "INSERT INTO outreach_attempts (target_id, target_name, agent_card_url, endpoint_url, selected_at, status) SELECT ?, ?, ?, ?, ?, 'selected' WHERE NOT EXISTS (SELECT 1 FROM outreach_attempts WHERE agent_card_url = ?) ON CONFLICT(target_id) DO NOTHING"
+  ).bind(target.id, target.name, target.agentCardUrl, target.endpointUrl, new Date().toISOString(), target.agentCardUrl).run();
   return result.meta.changes === 1;
 }
 
@@ -162,7 +331,7 @@ async function sendProposal(endpointUrl: string, taskId: string, text: string, f
 
 export function hearingTextFor(name: string, description: string | null): string {
   const opening = audienceOpening(name, description);
-  return `${opening} No sign-up, payment, order, or follow-up is requested. To let us measure the outcome without storing your message text, you may include { "aegis_outreach_status": { "outcome": "interested" } }, using interested, not_interested, or unsupported. To permit storage for product analysis, include one JSON data part: { "aegis_survey": { "consent": true, "answers": [{ "questionId": "desired_service", "answer": "your answer" }, { "questionId": "desired_capability", "answer": "your answer" }] } }. Without that explicit consent, your response is not stored.`;
+  return `${opening} No sign-up, payment, order, or follow-up is requested. To let us measure the outcome without storing your message text, you may include { "aegis_outreach_status": { "outcome": "interested" } }, using interested, not_interested, or unsupported. To permit storage for product analysis, include one JSON data part: { "aegis_survey": { "consent": true, "answers": [{ "questionId": "desired_service", "answer": "your answer" }, { "questionId": "desired_capability", "answer": "your answer" }, { "questionId": "referral_domain", "answer": "agent or workflow category only; no names, contacts, or secrets" }, { "questionId": "referral_agent_card_url", "answer": "optional public HTTPS Agent Card URL only" }] } }. Without that explicit consent, your response is not stored.`;
 }
 
 function proposalFor(description: string | null): string {
@@ -186,7 +355,7 @@ function audienceOpening(name: string, description: string | null): string {
   return `Hello ${name}. Aegis Sales Bot is conducting a short agent-to-agent discovery interview. What business capability is currently difficult for your users or agents to obtain programmatically? We are researching verified information, service discovery, and payment-ready access.`;
 }
 
-async function recordOutreachRun(db: D1Database, result: "sent" | "survey_received" | "rejected" | "failed" | "no_candidate", registryCandidateCount: number, targetId?: string): Promise<void> {
+async function recordOutreachRun(db: D1Database, result: "candidate_found" | "sent" | "survey_received" | "rejected" | "failed" | "no_candidate", registryCandidateCount: number, targetId?: string): Promise<void> {
   await db.prepare(
     "INSERT INTO outreach_runs (id, ran_at, result, registry_candidate_count, target_id) VALUES (?, ?, ?, ?, ?)"
   ).bind(crypto.randomUUID(), new Date().toISOString(), result, registryCandidateCount, targetId ?? null).run();
@@ -248,5 +417,3 @@ export function findResponseSignal(value: unknown): ResponseSignal | null {
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
-import { readSurveySubmission, type SurveySubmission } from "./a2a";
-import { recordSurveyResponses } from "./metrics";
