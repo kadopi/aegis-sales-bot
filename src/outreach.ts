@@ -250,8 +250,8 @@ function isSafeHttpsUrl(value: string): boolean {
 
 async function queueCandidate(db: D1Database, target: OutboundTarget, offer: MatchedOffer, source: "global_a2a_registry" | "a2a_directory"): Promise<boolean> {
   const result = await db.prepare(
-    "INSERT INTO outreach_candidates (agent_card_url, target_id, target_name, endpoint_url, product_id, value_hypothesis, source, discovered_at, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending') ON CONFLICT(agent_card_url) DO NOTHING"
-  ).bind(target.agentCardUrl, target.id, target.name, target.endpointUrl, offer.productId, offer.valueHypothesis, source, new Date().toISOString()).run();
+    "INSERT INTO outreach_candidates (agent_card_url, target_id, target_name, endpoint_url, product_id, value_hypothesis, source, discovered_at, status) SELECT ?, ?, ?, ?, ?, ?, ?, ?, 'pending' WHERE NOT EXISTS (SELECT 1 FROM outreach_attempts WHERE agent_card_url = ?) ON CONFLICT(agent_card_url) DO NOTHING"
+  ).bind(target.agentCardUrl, target.id, target.name, target.endpointUrl, offer.productId, offer.valueHypothesis, source, new Date().toISOString(), target.agentCardUrl).run();
   return result.meta.changes === 1;
 }
 

@@ -122,6 +122,7 @@
 - 旅行・日本参入はJapan Rule、調達・決済はx402 MCP Starter、MCP/A2A連携はAgent Card Health Checkへ、公開用途から1商品・1価値仮説だけを対応付ける。不適合なBusiness候補は保存しない。
 - `outreach_candidates`には公開URL、相手ID、接続先、発見元、候補商品、価値仮説、待機状態を保存する。外部返信本文・秘密情報・決済・成約状態は保存しない。
 - 本番D1へmigration `0009`を適用し、`product_id`と`value_hypothesis`列を確認。本番Version ID `2a80f000-781b-4f46-8999-5adb80b84bc7`へ配備済み。`/health`を確認。外部宛の手動送信はしていない。
+- `outreach_attempts`に同じAgent Card URLがある候補は登録しない。過去に連絡した相手を再候補化せず、未連絡の適合候補だけを待機登録する。本番Version ID `ba9ca2fa-9ddb-4bd5-86c7-3259474c92d0`へ配備済み。`/health`を確認。
 
 ## 2026-09-13 紹介型ヒアリング（ローカル実装）
 - 任意アンケートに`referral_domain`と公開`referral_agent_card_url`を追加。明示的なアンケート保存同意があるURLだけをD1へ保存する。

@@ -129,6 +129,7 @@ describe("outreach discovery", () => {
     expect(requests).toHaveLength(3);
     expect(requests.some((request) => request.init?.method === "POST")).toBe(false);
     expect(db.statements.some((statement) => statement.sql.includes("outreach_candidates") && JSON.stringify(statement.values).includes("a2a_directory"))).toBe(true);
+    expect(db.statements.some((statement) => statement.sql.includes("outreach_candidates") && statement.sql.includes("outreach_attempts"))).toBe(true);
     expect(db.statements.some((statement) => JSON.stringify(statement.values).includes("x402-mcp-starter"))).toBe(true);
     expect(db.statements.some((statement) => JSON.stringify(statement.values).includes("programmatic USDC payment route"))).toBe(true);
     expect(db.statements.some((statement) => statement.sql.includes("outreach_runs") && JSON.stringify(statement.values).includes("candidate_found"))).toBe(true);
