@@ -81,6 +81,24 @@
 - 公開・認証不要・Business・JSON-RPC 1.0、1実行1件、同一候補の再送禁止、同意済み回答だけの保存は維持する。
 - 本番Version ID `99801c74-df87-4fd9-b0ff-c2ccb5e19bdd`へ配備済み。Cron 3件、`OUTREACH_ENABLED=true`、`/health`を確認。
 
+## 2026-09-13 継続A2A商談（ローカル実装）
+- 初回ヒアリングに同一Task IDを含め、相手が`interested`を明示した場合だけ同じTaskで個別提案を送る。
+- Durable Objectには会話段階、個別提案文、7日間の期限だけを保存し、本文・認証情報・相手の応答本文は保存しない。
+- 相手がSales Botの`/a2a`へ同じTask IDで返答した場合も、`interested`、`not_interested`、`unsupported`または単純なyes/noを処理して提案または任意アンケートへ進める。
+- 本番Version ID `e79443e7-d881-4a49-bd80-47f804b82d68`へ配備済み。`/health`、Durable Object/D1/3件のCronバインドを確認。外部宛の手動送信はしていない。
+
+## 2026-09-13 成約導線の機械可読化（ローカル実装）
+- 個別提案は`aegis_connection_action`としてMCP接続URLと初回ツール呼び出しを返す。Japan Ruleは無料`search_entry_cases`、`get_commercial_terms`、下流x402の`PAYMENT-REQUIRED`順を明示する。
+- 無料のx402 Starter、Guardrail、Agent Card Health Checkにも接続先と最初の読み取りツールを定義した。Health Checkは所有または明示許可された対象だけを扱う。
+- Sales Botは購入案内と任意アンケートだけを記録し、購入完了は下流MCPのx402決済・納品記録を正とする。ウォレット操作・支払い実行・成約確定はしない。
+- 本番Version ID `0f8b2eec-b134-4893-8c44-09712080ee88`へ配備済み。`/health`とJapan Ruleの`/recommend`応答で`connectionAction`（無料プレビュー、利用条件、下流x402導線）を確認。外部宛の手動送信はしていない。
+
+## 2026-09-13 Sales Botの役割縮小（ローカル実装）
+- 成約導線の機械可読化は取り下げ、個別案内は公開商品を1つ、接続先URLと最初のMCPツール呼び出しを本文で案内して終了する。
+- Durable Objectの短いA2A会話は維持する。保存は相手ID、段階、期限、最終結果だけで、会話本文・決済・納品・成約判定は持たない。
+- 最終結果は`interested`、`not_interested`、`unsupported`。任意アンケートは既存の明示同意条件でのみ保存する。未配備。
+- 本番Version ID `b063641b-0288-4d57-987b-75e4d7f8ab84`へ配備済み。`/health`を確認。外部宛の手動送信はしていない。
+
 ## 2026-09-11 営業停止設定の監査
 - 本番Workerの`OUTREACH_ENABLED=true`、Cron 3件、`scheduled` handlerを確認。営業を一律停止する不要なフラグはない。
 - 送信先の公開・認証不要・Business・JSON-RPC 1.0条件、および同一候補の再送禁止は現在も有効。用途語フィルタは広いニーズ探索のため撤去し、用途にかかわらず公開Business A2A候補を聞く。

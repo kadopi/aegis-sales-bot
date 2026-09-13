@@ -3,7 +3,7 @@ import { a2aResponse, parseA2ARequest, readSurveySubmission } from "./a2a";
 export { A2AConversation } from "./a2a-conversation";
 import { recordFunnelMetric, recordMetric, recordSurveyResponses, type MetricEvent } from "./metrics";
 import { observationAudience } from "./observation";
-import { runOutreach } from "./outreach";
+import { findResponseSignal, runOutreach } from "./outreach";
 import { parseRequest, recommend } from "./recommend";
 
 const VERSION = "0.2.0";
@@ -33,7 +33,7 @@ export default {
     }
   },
   async scheduled(_controller, env, ctx) {
-    ctx.waitUntil(runOutreach(env.DB, env.OUTREACH_ENABLED));
+    ctx.waitUntil(runOutreach(env.DB, env.OUTREACH_ENABLED, env.A2A_CONVERSATIONS));
   }
 } satisfies ExportedHandler<Env>;
 
@@ -68,7 +68,9 @@ async function handleA2ARequest(request: Request, env: Env, ctx: ExecutionContex
   if ("error" in parsed) return json(parsed.error, 400);
   const { id, taskId, text } = parsed.request;
   const conversation = env.A2A_CONVERSATIONS.getByName(taskId);
-  const response = a2aResponse(id, taskId, await conversation.advance({ text }));
+  const response = taskId.startsWith("aegis-outreach-")
+    ? a2aResponse(id, taskId, outboundTurn(await conversation.advanceOutbound(findResponseSignal(input) ?? signalFromText(text))))
+    : a2aResponse(id, taskId, await conversation.advance({ text }));
   track(ctx, env, request, "a2a_conversation");
   const survey = readSurveySubmission(input);
   if (survey) {
@@ -76,6 +78,18 @@ async function handleA2ARequest(request: Request, env: Env, ctx: ExecutionContex
     ctx.waitUntil(recordSurveyResponses(env.DB, survey));
   }
   return json(response);
+}
+
+function signalFromText(text: string): "interested" | "not_interested" | "unsupported" | null {
+  const value = text.trim().toLowerCase();
+  if (/^(interested|yes|sounds good)\b/.test(value)) return "interested";
+  if (/^(not_interested|no|not now)\b/.test(value)) return "not_interested";
+  if (/^unsupported\b/.test(value)) return "unsupported";
+  return null;
+}
+
+function outboundTurn(turn: { status: "TASK_STATE_INPUT_REQUIRED" | "TASK_STATE_COMPLETED"; message: string; includeSurvey: boolean }) {
+  return { nextState: null, status: turn.status, message: turn.message, recommendation: null, includeSurvey: turn.includeSurvey };
 }
 
 function agentCard(origin: string) {

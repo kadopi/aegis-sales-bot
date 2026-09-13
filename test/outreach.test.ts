@@ -19,6 +19,22 @@ function database() {
   } as unknown as D1Database & { statements: Statement[] };
 }
 
+function conversations() {
+  const events: Array<{ method: string; proposal?: string; signal?: string | null }> = [];
+  return {
+    events,
+    getByName() {
+      return {
+        beginOutbound: async ({ proposal }: { peerId: string; proposal: string }) => { events.push({ method: "begin", proposal }); },
+        advanceOutbound: async (signal: string | null) => {
+          events.push({ method: "advance", signal });
+          return { status: "TASK_STATE_INPUT_REQUIRED" as const, message: "Personalized proposal", includeSurvey: false };
+        }
+      };
+    }
+  };
+}
+
 describe("outreach discovery", () => {
   it("selects a relevant opening from the target's public Agent Card description", () => {
     expect(hearingTextFor("Travel Agent", "Hotel booking and tourism planning")).toContain("Japan Rule MCP");
@@ -29,13 +45,15 @@ describe("outreach discovery", () => {
 
   it("does nothing until outbound discovery is explicitly enabled", async () => {
     const db = database();
+    const outbound = conversations();
     const fetcher = async () => { throw new Error("must not fetch"); };
-    await runOutreach(db, "false", fetcher as typeof fetch);
+    await runOutreach(db, "false", outbound, fetcher as typeof fetch);
     expect(db.statements).toEqual([]);
   });
 
   it("stores only an explicitly consented structured survey from a newly qualified public A2A agent", async () => {
     const db = database();
+    const outbound = conversations();
     const requests: Array<{ url: string; init?: RequestInit }> = [];
     const fetcher = async (url: RequestInfo | URL, init?: RequestInit) => {
       requests.push({ url: String(url), init });
@@ -49,12 +67,14 @@ describe("outreach discovery", () => {
       ] } } }] } } });
     };
 
-    await runOutreach(db, "true", fetcher as typeof fetch);
+    await runOutreach(db, "true", outbound, fetcher as typeof fetch);
 
-    expect(requests).toHaveLength(3);
+    expect(requests).toHaveLength(4);
     expect(requests[2].init?.method).toBe("POST");
     expect(JSON.stringify(requests[2].init?.body)).toContain("aegis_survey");
     expect(JSON.stringify(requests[2].init?.body)).toContain("A2A connection readiness");
+    expect(JSON.stringify(requests[3].init?.body)).toContain("Personalized proposal");
+    expect(outbound.events).toEqual([{ method: "begin", proposal: expect.stringContaining("Agent Card Health Check") }, { method: "advance", signal: "interested" }]);
     expect(db.statements.filter((statement) => statement.sql.includes("outreach_attempts"))).toHaveLength(2);
     expect(db.statements.filter((statement) => statement.sql.includes("survey_responses"))).toHaveLength(2);
     expect(db.statements.some((statement) => JSON.stringify(statement.values).includes("Official source map"))).toBe(true);
@@ -64,9 +84,10 @@ describe("outreach discovery", () => {
 
   it("records a no-candidate run without sending an A2A message", async () => {
     const db = database();
+    const outbound = conversations();
     const fetcher = async () => Response.json({ agents: [] });
 
-    await runOutreach(db, "true", fetcher as typeof fetch);
+    await runOutreach(db, "true", outbound, fetcher as typeof fetch);
 
     expect(db.statements).toHaveLength(1);
     expect(db.statements[0].sql).toContain("outreach_runs");

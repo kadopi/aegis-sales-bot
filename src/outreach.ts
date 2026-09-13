@@ -21,11 +21,16 @@ type OutboundTarget = {
 };
 
 type ResponseSignal = "interested" | "not_interested" | "unsupported";
+type OutboundConversation = {
+  beginOutbound(input: { peerId: string; proposal: string }): Promise<void>;
+  advanceOutbound(signal: ResponseSignal | null): Promise<{ status: "TASK_STATE_INPUT_REQUIRED" | "TASK_STATE_COMPLETED"; message: string; includeSurvey: boolean }>;
+};
+type OutboundConversations = { getByName(name: string): OutboundConversation };
 
 const REGISTRY_URL = "https://api.a2a-registry.org/public/agents?page=1&sort=newest";
 const SELF_AGENT_CARD = "https://aegis-sales-bot.kadopi.workers.dev/.well-known/agent-card.json";
 
-export async function runOutreach(db: D1Database, enabled: string | undefined, fetcher: typeof fetch = fetch): Promise<void> {
+export async function runOutreach(db: D1Database, enabled: string | undefined, conversations: OutboundConversations, fetcher: typeof fetch = fetch): Promise<void> {
   if (enabled !== "true") return;
   let registryCandidateCount = 0;
   try {
@@ -41,7 +46,9 @@ export async function runOutreach(db: D1Database, enabled: string | undefined, f
       const inserted = await reserveTarget(db, target);
       if (!inserted) continue;
 
-      const result = await sendHearing(db, target, fetcher);
+      const conversation = conversations.getByName(`aegis-outreach-${target.id}`);
+      await conversation.beginOutbound({ peerId: target.id, proposal: proposalFor(target.description) });
+      const result = await sendHearing(db, target, conversation, fetcher);
       await recordOutreachRun(db, result, registryCandidateCount, target.id);
       return;
     }
@@ -100,7 +107,7 @@ async function reserveTarget(db: D1Database, target: OutboundTarget): Promise<bo
   return result.meta.changes === 1;
 }
 
-async function sendHearing(db: D1Database, target: OutboundTarget, fetcher: typeof fetch): Promise<"sent" | "survey_received" | "rejected" | "failed"> {
+async function sendHearing(db: D1Database, target: OutboundTarget, conversation: OutboundConversation, fetcher: typeof fetch): Promise<"sent" | "survey_received" | "rejected" | "failed"> {
   const taskId = `aegis-outreach-${target.id}`;
   const body = {
     jsonrpc: "2.0",
@@ -109,6 +116,7 @@ async function sendHearing(db: D1Database, target: OutboundTarget, fetcher: type
     params: {
       message: {
         messageId: crypto.randomUUID(),
+        taskId,
         role: "ROLE_USER",
         parts: [{ text: hearingTextFor(target.name, target.description) }]
       }
@@ -119,6 +127,18 @@ async function sendHearing(db: D1Database, target: OutboundTarget, fetcher: type
     const response = await fetcher(target.endpointUrl, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
     const outcome = response.ok ? await readOutboundOutcome(response, taskId) : { survey: null, signal: null };
     if (outcome.survey) await recordSurveyResponses(db, outcome.survey);
+    if (outcome.signal === "interested") {
+      const next = await conversation.advanceOutbound(outcome.signal);
+      if (next.status === "TASK_STATE_INPUT_REQUIRED") {
+        try {
+          await sendProposal(target.endpointUrl, taskId, next.message, fetcher);
+        } catch {
+          // The initial hearing was delivered; a follow-up failure must not relabel it as failed.
+        }
+      }
+    } else if (outcome.signal) {
+      await conversation.advanceOutbound(outcome.signal);
+    }
     const result = outcome.survey ? "survey_received" : response.ok ? "sent" : "rejected";
     await db.prepare(
       "UPDATE outreach_attempts SET sent_at = ?, status = ?, http_status = ?, response_signal = ? WHERE target_id = ?"
@@ -132,9 +152,24 @@ async function sendHearing(db: D1Database, target: OutboundTarget, fetcher: type
   }
 }
 
+async function sendProposal(endpointUrl: string, taskId: string, text: string, fetcher: typeof fetch): Promise<void> {
+  await fetcher(endpointUrl, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: `${taskId}-proposal`, method: "SendMessage", params: { message: { messageId: crypto.randomUUID(), taskId, role: "ROLE_USER", parts: [{ text }] } } })
+  });
+}
+
 export function hearingTextFor(name: string, description: string | null): string {
   const opening = audienceOpening(name, description);
   return `${opening} No sign-up, payment, order, or follow-up is requested. To let us measure the outcome without storing your message text, you may include { "aegis_outreach_status": { "outcome": "interested" } }, using interested, not_interested, or unsupported. To permit storage for product analysis, include one JSON data part: { "aegis_survey": { "consent": true, "answers": [{ "questionId": "desired_service", "answer": "your answer" }, { "questionId": "desired_capability", "answer": "your answer" }] } }. Without that explicit consent, your response is not stored.`;
+}
+
+function proposalFor(description: string | null): string {
+  const profile = description?.toLowerCase() ?? "";
+  if (/tourism|travel|hotel|booking|destination|experience/.test(profile)) return "Japan Rule is a free MCP preview for a Japan experiential-tourism entry model case. Connect at https://japan-rulewatch-mcp-mainnet.kadopi.workers.dev/mcp and call search_entry_cases. Japan Rule handles its own commercial terms, purchase, and delivery if you choose to continue.";
+  if (/payment|commerce|marketplace|procurement|trade|retail|ecommerce/.test(profile)) return "x402 MCP Starter is a free self-hosted starting point for adding USDC usage payments to an MCP tool. Connect at https://x402-mcp-starter.kadopi.workers.dev/mcp and call validate_x402_config with your own configuration.";
+  return "Agent Card Health Check is a free, no-storage MCP for an A2A Agent Card, endpoint, and authentication declaration. Connect at https://agent-card-health-check.kadopi.workers.dev/mcp and call diagnose_agent_card only for an agent you own or are authorized to connect to.";
 }
 
 function audienceOpening(name: string, description: string | null): string {
@@ -190,7 +225,7 @@ function findSurvey(value: unknown): unknown {
   return null;
 }
 
-function findResponseSignal(value: unknown): ResponseSignal | null {
+export function findResponseSignal(value: unknown): ResponseSignal | null {
   if (Array.isArray(value)) {
     for (const item of value) {
       const found = findResponseSignal(item);

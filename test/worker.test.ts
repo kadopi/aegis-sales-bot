@@ -13,6 +13,12 @@ const conversations = {
       conversationStates.set(taskId, turn.nextState);
       return turn;
     },
+    advanceOutbound: async (signal: "interested" | "not_interested" | "unsupported" | null) => {
+      if (signal === "interested") {
+        return { status: "TASK_STATE_INPUT_REQUIRED" as const, message: "Personalized proposal for this agent.", includeSurvey: false };
+      }
+      return { status: "TASK_STATE_COMPLETED" as const, message: "Outcome recorded.", includeSurvey: true };
+    },
   }),
 };
 const env = { DB: db, A2A_CONVERSATIONS: conversations } as unknown as Env;
@@ -120,6 +126,17 @@ describe("public HTTP routes", () => {
     }), env, ctx);
     const payload = await response.json() as { result: { task: { status: { state: string } } } };
     expect(payload.result.task.status.state).toBe("TASK_STATE_INPUT_REQUIRED");
+  });
+
+  it("continues an outbound A2A task with the same task ID", async () => {
+    const response = await worker.fetch(incomingRequest("https://example.test/a2a", {
+      method: "POST",
+      body: JSON.stringify({ jsonrpc: "2.0", id: "outbound-1", method: "SendMessage", params: { message: { messageId: "m-outbound-1", taskId: "aegis-outreach-peer-1", role: "ROLE_USER", parts: [{ text: "interested" }] } } })
+    }), env, ctx);
+    const payload = await response.json() as A2AResponse;
+    expect(response.status).toBe(200);
+    expect(payload.result.task.status.state).toBe("TASK_STATE_INPUT_REQUIRED");
+    expect(payload.result.task.status.message.parts[0].text).toContain("Personalized proposal");
   });
 
   it("accepts only explicitly consented survey answers with known question IDs", () => {
