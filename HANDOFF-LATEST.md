@@ -75,6 +75,12 @@
 - `npm run check`、`npm test`（22 tests）、`wrangler deploy --dry-run` が成功。
 - 本番Version ID `b3a9d720-f2d9-447b-b7ab-6848fe559ca1`。Cron 3件と`OUTREACH_ENABLED=true`を`wrangler versions view`で確認。
 
+## 2026-09-13 相手別A2Aヒアリング（ローカル実装）
+- 公開Agent Cardの説明から、旅行・観光、商取引・調達、MCP・開発、一般ヒアリングの4種類の導入文を選ぶ。
+- Japan Rule、x402対応サービス、Agent Card Health Checkを相手の用途に応じて1つだけ仮説として提示する。
+- 公開・認証不要・Business・JSON-RPC 1.0、1実行1件、同一候補の再送禁止、同意済み回答だけの保存は維持する。
+- 本番Version ID `99801c74-df87-4fd9-b0ff-c2ccb5e19bdd`へ配備済み。Cron 3件、`OUTREACH_ENABLED=true`、`/health`を確認。
+
 ## 2026-09-11 営業停止設定の監査
 - 本番Workerの`OUTREACH_ENABLED=true`、Cron 3件、`scheduled` handlerを確認。営業を一律停止する不要なフラグはない。
 - 送信先の公開・認証不要・Business・JSON-RPC 1.0条件、および同一候補の再送禁止は現在も有効。用途語フィルタは広いニーズ探索のため撤去し、用途にかかわらず公開Business A2A候補を聞く。

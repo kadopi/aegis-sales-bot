@@ -15,6 +15,7 @@ type AgentCard = {
 type OutboundTarget = {
   id: string;
   name: string;
+  description: string | null;
   agentCardUrl: string;
   endpointUrl: string;
 };
@@ -71,7 +72,7 @@ async function qualifyTarget(candidate: RegistryAgent, fetcher: typeof fetch): P
   const endpointUrl = jsonRpcEndpoint(card);
   if (!endpointUrl || !isSafeHttpsUrl(endpointUrl)) return null;
 
-  return { id: candidate.id, name: candidate.displayName, agentCardUrl: candidate.manifestUrl, endpointUrl };
+  return { id: candidate.id, name: candidate.displayName, description: candidate.description, agentCardUrl: candidate.manifestUrl, endpointUrl };
 }
 
 function isPublicNoAuthCard(card: AgentCard): boolean {
@@ -109,7 +110,7 @@ async function sendHearing(db: D1Database, target: OutboundTarget, fetcher: type
       message: {
         messageId: crypto.randomUUID(),
         role: "ROLE_USER",
-        parts: [{ text: "Hello. Aegis Sales Bot is conducting a short agent-to-agent discovery interview. What business capability is currently difficult for your users or agents to obtain programmatically? We are especially researching country-entry workflows: official-source preparation, tourism-business research, local partner discovery, and payment-ready service access. If a Japan-related MCP, API, or verified information service would help, please tell us what outcome you need. No sign-up, payment, order, or follow-up is requested. To let us measure the outcome without storing your message text, you may include { \"aegis_outreach_status\": { \"outcome\": \"interested\" } }, using interested, not_interested, or unsupported. To permit storage for product analysis, include one JSON data part: { \"aegis_survey\": { \"consent\": true, \"answers\": [{ \"questionId\": \"desired_service\", \"answer\": \"your answer\" }, { \"questionId\": \"desired_capability\", \"answer\": \"your answer\" }] } }. Without that explicit consent, your response is not stored." }]
+        parts: [{ text: hearingTextFor(target.name, target.description) }]
       }
     }
   };
@@ -129,6 +130,25 @@ async function sendHearing(db: D1Database, target: OutboundTarget, fetcher: type
     ).bind(new Date().toISOString(), target.id).run();
     return "failed";
   }
+}
+
+export function hearingTextFor(name: string, description: string | null): string {
+  const opening = audienceOpening(name, description);
+  return `${opening} No sign-up, payment, order, or follow-up is requested. To let us measure the outcome without storing your message text, you may include { "aegis_outreach_status": { "outcome": "interested" } }, using interested, not_interested, or unsupported. To permit storage for product analysis, include one JSON data part: { "aegis_survey": { "consent": true, "answers": [{ "questionId": "desired_service", "answer": "your answer" }, { "questionId": "desired_capability", "answer": "your answer" }] } }. Without that explicit consent, your response is not stored.`;
+}
+
+function audienceOpening(name: string, description: string | null): string {
+  const profile = description?.toLowerCase() ?? "";
+  if (/tourism|travel|hotel|booking|destination|experience/.test(profile)) {
+    return `Hello ${name}. Your Agent Card suggests travel or tourism work. If your users need a programmatic way to prepare for entering Japan's experiential-tourism market, would a Japan Rule MCP with official-source guidance be useful? What outcome would they need?`;
+  }
+  if (/payment|commerce|marketplace|procurement|trade|retail|ecommerce/.test(profile)) {
+    return `Hello ${name}. Your Agent Card suggests commerce or procurement work. Where do your users or agents currently struggle to discover, verify, or pay for a programmatic business service? We are researching MCP and x402-compatible service access.`;
+  }
+  if (/mcp|api|developer|workflow|automation|software|integration/.test(profile)) {
+    return `Hello ${name}. Your Agent Card suggests agent or workflow development. Do your users need help checking A2A connection readiness, finding an MCP capability, or adding a payment-ready service route? Which outcome is hardest to obtain programmatically?`;
+  }
+  return `Hello ${name}. Aegis Sales Bot is conducting a short agent-to-agent discovery interview. What business capability is currently difficult for your users or agents to obtain programmatically? We are researching verified information, service discovery, and payment-ready access.`;
 }
 
 async function recordOutreachRun(db: D1Database, result: "sent" | "survey_received" | "rejected" | "failed" | "no_candidate", registryCandidateCount: number, targetId?: string): Promise<void> {

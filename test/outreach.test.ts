@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { runOutreach } from "../src/outreach";
+import { hearingTextFor, runOutreach } from "../src/outreach";
 
 type Statement = { sql: string; values: unknown[] };
 
@@ -20,6 +20,13 @@ function database() {
 }
 
 describe("outreach discovery", () => {
+  it("selects a relevant opening from the target's public Agent Card description", () => {
+    expect(hearingTextFor("Travel Agent", "Hotel booking and tourism planning")).toContain("Japan Rule MCP");
+    expect(hearingTextFor("Commerce Agent", "Marketplace payments and procurement")).toContain("x402-compatible");
+    expect(hearingTextFor("Developer Agent", "MCP workflow automation")).toContain("A2A connection readiness");
+    expect(hearingTextFor("Research Agent", "General business intelligence")).toContain("discovery interview");
+  });
+
   it("does nothing until outbound discovery is explicitly enabled", async () => {
     const db = database();
     const fetcher = async () => { throw new Error("must not fetch"); };
@@ -47,6 +54,7 @@ describe("outreach discovery", () => {
     expect(requests).toHaveLength(3);
     expect(requests[2].init?.method).toBe("POST");
     expect(JSON.stringify(requests[2].init?.body)).toContain("aegis_survey");
+    expect(JSON.stringify(requests[2].init?.body)).toContain("A2A connection readiness");
     expect(db.statements.filter((statement) => statement.sql.includes("outreach_attempts"))).toHaveLength(2);
     expect(db.statements.filter((statement) => statement.sql.includes("survey_responses"))).toHaveLength(2);
     expect(db.statements.some((statement) => JSON.stringify(statement.values).includes("Official source map"))).toBe(true);
