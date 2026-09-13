@@ -64,7 +64,7 @@ describe("public HTTP routes", () => {
     });
 
     const x402Starter = await worker.fetch(incomingRequest("https://example.test/products/x402-mcp-starter"), env, ctx);
-    expect(await x402Starter.json()).toMatchObject({ id: "x402-mcp-starter", firstTool: "validate_x402_config", paidAccess: null, discovery: { mcpRegistry: { status: "prepared" }, clawHubSkill: { status: "prepared", url: null } } });
+    expect(await x402Starter.json()).toMatchObject({ id: "x402-mcp-starter", firstTool: "validate_x402_config", paidAccess: null, discovery: { mcpRegistry: { status: "published" }, clawHubSkill: { status: "prepared", url: null } } });
 
     const healthCheck = await worker.fetch(incomingRequest("https://example.test/products/agent-card-health-check"), env, ctx);
     expect(await healthCheck.json()).toMatchObject({ id: "agent-card-health-check", firstTool: "diagnose_agent_card", paidAccess: null, discovery: { mcpRegistry: { status: "prepared" }, clawHubSkill: { status: "prepared", url: null } } });

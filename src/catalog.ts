@@ -80,7 +80,7 @@ export const catalog = [
     discovery: {
       agentCardUrl: "https://x402-mcp-starter.kadopi.workers.dev/.well-known/agent-card.json",
       githubReadmeUrl: "https://github.com/kadopi/x402-mcp-starter/blob/master/README.md",
-      mcpRegistry: { status: "prepared", url: "https://registry.modelcontextprotocol.io/?q=io.github.kadopi%2Fx402-mcp-starter" },
+      mcpRegistry: { status: "published", url: "https://registry.modelcontextprotocol.io/?q=io.github.kadopi%2Fx402-mcp-starter" },
       clawHubSkill: { status: "prepared", url: null, sourceUrl: "https://github.com/kadopi/x402-mcp-starter/blob/master/openclaw/SKILL.md" }
     },
     updatedAt: "2026-09-06"
