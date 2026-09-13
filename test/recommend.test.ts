@@ -35,6 +35,14 @@ describe("recommend", () => {
     expect(result.recommendedProduct?.id).toBe("x402-mcp-starter");
   });
 
+  it("recommends Agent Card Health Check for A2A connection readiness", () => {
+    const result = recommend("I need to check my A2A Agent Card endpoint and authentication before connecting another agent");
+    expect(result.fit).toBe("high");
+    expect(result.recommendedProduct?.id).toBe("agent-card-health-check");
+    expect(result.connection?.url).toBe("https://agent-card-health-check.kadopi.workers.dev/mcp");
+    expect(result.nextAction).toContain("diagnose_agent_card");
+  });
+
   it("lists the Integration Kit as coming soon without inventing a checkout URL", () => {
     const result = recommend("I need an x402 integration kit for a paid Cloudflare Workers MCP tool");
     expect(result.fit).toBe("high");
@@ -49,6 +57,21 @@ describe("recommend", () => {
     const result = recommend("Plan a team offsite lunch menu");
     expect(result.fit).toBe("none");
     expect(result.recommendedProduct).toBeNull();
+    expect(result.healthCheck).toBeNull();
+  });
+
+  it("adds an optional Health Check demo only for a recommended product and valid HTTPS URL", () => {
+    const result = recommend("I need USDC payment for my MCP tools with x402", "https://health-check.example/mcp");
+    expect(result.healthCheck).toMatchObject({
+      service: "agent-card-health-check",
+      mode: "optional_demo",
+      mcpUrl: "https://health-check.example/mcp",
+      tool: "diagnose_agent_card",
+      offer: { name: "接続準備チェック", price: "無料・一回" },
+      requiresUserAuthorization: true
+    });
+    expect(result.healthCheck?.message).toContain("代理実行しません");
+    expect(recommend("I need USDC payment for my MCP tools with x402", "http://health-check.example/mcp").healthCheck).toBeNull();
   });
 
   it("does not match English keywords inside unrelated words", () => {

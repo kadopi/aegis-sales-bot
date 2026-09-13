@@ -12,6 +12,22 @@ export type Recommendation = {
   example: { input: string; output: string } | null;
   nextAction: string;
   alternatives: readonly Product[];
+  healthCheck: HealthCheckDemo | null;
+};
+
+export type HealthCheckDemo = {
+  service: "agent-card-health-check";
+  mode: "optional_demo";
+  mcpUrl: string;
+  tool: "diagnose_agent_card";
+  offer: {
+    name: "接続準備チェック";
+    price: "無料・一回";
+    benefit: string;
+  };
+  requiresUserAuthorization: true;
+  requiredInputs: readonly ("agentCard" | "authorizedTargetUrl")[];
+  message: string;
 };
 
 export function parseRequest(input: unknown): string | null {
@@ -22,7 +38,7 @@ export function parseRequest(input: unknown): string | null {
   return normalized.length > 0 && normalized.length <= 2_000 ? normalized : null;
 }
 
-export function recommend(request: string): Recommendation {
+export function recommend(request: string, healthCheckUrl?: string): Recommendation {
   const ranked = catalog
     .map((product) => ({ product, score: score(product, request) }))
     .sort((left, right) => right.score - left.score || left.product.id.localeCompare(right.product.id));
@@ -40,8 +56,33 @@ export function recommend(request: string): Recommendation {
     connection: best.product.connectionUrl ? { type: best.product.connectionType, url: best.product.connectionUrl, docsUrl: best.product.docsUrl } : null,
     example: { input: best.product.exampleInput, output: best.product.exampleOutput },
     nextAction: best.product.nextAction,
-    alternatives: ranked.filter((item) => item.score > 0 && item.product.id !== best.product.id).map((item) => item.product)
+    alternatives: ranked.filter((item) => item.score > 0 && item.product.id !== best.product.id).map((item) => item.product),
+    healthCheck: createHealthCheckDemo(healthCheckUrl)
   };
+}
+
+function createHealthCheckDemo(value: string | undefined): HealthCheckDemo | null {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:" || url.username || url.password) return null;
+    return {
+      service: "agent-card-health-check",
+      mode: "optional_demo",
+      mcpUrl: url.toString(),
+      tool: "diagnose_agent_card",
+      offer: {
+        name: "接続準備チェック",
+        price: "無料・一回",
+        benefit: "紹介されたAIエージェントを使う前に、接続可否・認証要否・設定違いを確認できます。"
+      },
+      requiresUserAuthorization: true,
+      requiredInputs: ["agentCard", "authorizedTargetUrl"],
+      message: "接続先を所有しているか、接続を明示許可されている場合だけ診断してください。営業Botは診断を代理実行しません。"
+    };
+  } catch {
+    return null;
+  }
 }
 
 function score(product: Product, request: string): number {
@@ -69,6 +110,7 @@ function noFit(): Recommendation {
     connection: null,
     example: null,
     nextAction: "Review the current catalog at /products.json.",
-    alternatives: catalog
+    alternatives: catalog,
+    healthCheck: null
   };
 }

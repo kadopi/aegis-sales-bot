@@ -119,3 +119,19 @@
 - ClawHubは`Review selected`と公開で`Server Error Called by client`が断続的に発生したが、新しいChromeタブで再実行して成功した。
 - `Aegis Japan Tourism Entry` をClawHubへ公開済み: `https://clawhub.ai/kadopi/aegis-japan-tourism-entry`。カテゴリはIntegrations / Research / Lifestyle、トピックはjapan-tourism / travel-business / a2a / mcp。
 - ClawHubへ障害報告をGitHub Issue [#3666](https://github.com/openclaw/clawhub/issues/3666) として送信済み。失敗時の再現手順に加え、同一環境での断続的な成功も追記した。
+
+## 2026-09-13 接続準備チェックの任意デモ導線（ローカル実装）
+- `AGENT_CARD_HEALTH_CHECK_URL` が有効なHTTPS MCP URLの時だけ、`POST /recommend` が `healthCheck` を追加する。
+- 表示名は「接続準備チェック（無料・一回）」。接続可否・認証要否・設定違いを事前確認できると説明する。
+- `mode: optional_demo` を明示し、営業Botの紹介・A2A・D1・アウトリーチとは独立した任意導線とする。
+- 営業BotはHealth Checkを呼び出さず、Agent Card・認証情報・診断結果・接続先応答を受信・保存しない。
+- URL未設定・HTTP・不正URL・推薦なしでは案内を返さない。設定を外せば導線も消える。
+- `npm run check`、`npm test`（24 tests）、`wrangler deploy --dry-run` を確認。配備・公開・外部診断は未実施。
+- `wrangler dev --var AGENT_CARD_HEALTH_CHECK_URL:...` のローカル `/recommend` で `healthCheck.mode=optional_demo` を確認。ローカルD1には既存metrics migrationがないため、非同期の既存metric書き込みだけは失敗ログとなるが、推薦応答とデモ導線は200で返った。
+- 本番公開: Health Checkを `https://agent-card-health-check.kadopi.workers.dev/mcp` に公開し、`AGENT_CARD_HEALTH_CHECK_URL` を営業Botへ設定して再配備。営業Bot Version ID `a31b195f-7466-4162-910b-3b8b286633d9`。本番 `/recommend` で `healthCheck.mode=optional_demo` とMCP URLを確認。実在エージェントの診断、顧客利用、売上は未確認。
+
+## 2026-09-13 Agent Card Health Checkカタログ追加（本番有効）
+- 公開・無料・保存なしの `Agent Card Health Check` を中央カタログへ追加。MCP URLは `https://agent-card-health-check.kadopi.workers.dev/mcp`。
+- Sales Botは接続案内だけを返し、診断を実行せず、Agent Card、認証情報、入力、診断結果、相手の応答を保存しない。
+- Agent Card、A2A、接続先、認証設定の依頼で推薦し、対象の所有または明示的な接続許可を要求する。
+- 本番Version ID `3824bb80-936f-4982-891c-eada0c8adff6`へ配備済み。`/products.json`の5商品と、A2A Agent Card接続依頼での`fit: high`推薦を確認。

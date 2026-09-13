@@ -50,7 +50,7 @@ async function handleRecommendation(request: Request, env: Env, ctx: ExecutionCo
     track(ctx, env, request, "error");
     return json({ error: "request_or_purpose_must_be_a_nonempty_string_of_at_most_2000_characters" }, 400);
   }
-  const result = recommend(query);
+  const result = recommend(query, env.AGENT_CARD_HEALTH_CHECK_URL);
   track(ctx, env, request, "recommendation", result.recommendedProduct?.id ?? "");
   if (result.recommendedProduct) track(ctx, env, request, "connection_guide", result.recommendedProduct.id);
   return json(result);

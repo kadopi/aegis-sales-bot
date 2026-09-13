@@ -77,6 +77,25 @@ export const catalog = [
     updatedAt: "2026-09-06"
   },
   {
+    id: "agent-card-health-check",
+    name: "Agent Card Health Check",
+    status: "public",
+    summary: "A read-only MCP that checks an A2A Agent Card against its declared endpoint and authentication configuration before an authorized connection. It returns a fixed connection-readiness result and does not store the card, credentials, diagnostic result, or service response.",
+    useCases: ["Check whether an A2A Agent Card's declared endpoint and authentication configuration are ready for connection", "Find a public Agent Card and actual connection mismatch before adding an agent to an A2A workflow", "A2Aエージェントへ接続する前に、Agent Card・接続先URL・認証設定を確認する"],
+    keywords: ["a2a", "agent card", "agent-card", "agentcard", "endpoint", "authentication", "auth", "connection", "connectable", "health check", "接続", "認証", "接続先", "エージェントカード"],
+    limitations: ["Run diagnostics only for an agent you own or are explicitly authorized to connect to", "The Sales Bot only introduces this MCP and does not run diagnostics or receive diagnostic inputs or results", "No security guarantee, vulnerability assessment, service execution, data storage, payment, or follow-up"],
+    freeOffer: "Free, one-time, no-storage A2A connection-readiness check.",
+    paidOffer: null,
+    connectionType: "mcp",
+    connectionUrl: "https://agent-card-health-check.kadopi.workers.dev/mcp",
+    docsUrl: null,
+    sourceUrl: null,
+    exampleInput: "I own an A2A agent and want to verify that its Agent Card, endpoint URL, and authentication declaration are ready before another agent connects.",
+    exampleOutput: "The MCP returns a fixed result such as connectable, auth_required, configuration_mismatch, or unreachable, with the declared and observed connection facts.",
+    nextAction: "Connect an MCP client and call diagnose_agent_card only for an agent you own or are explicitly authorized to connect to.",
+    updatedAt: "2026-09-13"
+  },
+  {
     id: "x402-mcp-integration-kit",
     name: "x402 MCP Integration Kit — Beta",
     status: "coming-soon",

@@ -37,14 +37,27 @@ describe("public HTTP routes", () => {
     const response = await worker.fetch(incomingRequest("https://example.test/products.json"), env, ctx);
     expect(response.status).toBe(200);
     const products = (await response.json() as { products: Array<{ id: string; status: string; connectionUrl: string | null }> }).products;
-    expect(products).toHaveLength(4);
+    expect(products).toHaveLength(5);
     expect(products.find((product) => product.id === "x402-mcp-integration-kit")).toMatchObject({ status: "coming-soon", connectionUrl: null });
+    expect(products.find((product) => product.id === "agent-card-health-check")).toMatchObject({ status: "public", connectionUrl: "https://agent-card-health-check.kadopi.workers.dev/mcp" });
   });
 
   it("returns a JSON recommendation", async () => {
     const response = await worker.fetch(incomingRequest("https://example.test/recommend", { method: "POST", body: JSON.stringify({ request: "x402 USDC payment for MCP" }) }), env, ctx);
     expect(response.status).toBe(200);
     expect((await response.json() as { recommendedProduct: { id: string } }).recommendedProduct.id).toBe("x402-mcp-starter");
+  });
+
+  it("adds the optional demo guide without calling the Health Check service", async () => {
+    const demoEnv = { ...env, AGENT_CARD_HEALTH_CHECK_URL: "https://health-check.example/mcp" } as Env;
+    const response = await worker.fetch(incomingRequest("https://example.test/recommend", { method: "POST", body: JSON.stringify({ request: "x402 USDC payment for MCP" }) }), demoEnv, ctx);
+    const payload = await response.json() as { healthCheck: { mode: string; mcpUrl: string; offer: { price: string } } | null };
+    expect(response.status).toBe(200);
+    expect(payload.healthCheck).toEqual(expect.objectContaining({
+      mode: "optional_demo",
+      mcpUrl: "https://health-check.example/mcp",
+      offer: expect.objectContaining({ price: "無料・一回" }),
+    }));
   });
 
   it("rejects malformed recommendation payloads", async () => {

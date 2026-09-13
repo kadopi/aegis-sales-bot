@@ -5,6 +5,7 @@ interface __BaseEnv_Env {
 	DB: D1Database;
 	A2A_CONVERSATIONS: DurableObjectNamespace<import("./src/index").A2AConversation>;
 	OUTREACH_ENABLED: "true" | "false";
+	AGENT_CARD_HEALTH_CHECK_URL?: string;
 }
 declare namespace Cloudflare {
 	interface GlobalProps {
