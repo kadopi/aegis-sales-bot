@@ -55,14 +55,19 @@ describe("public HTTP routes", () => {
       id: "japan-rulewatch",
       connection: { url: "https://japan-rulewatch-mcp-mainnet.kadopi.workers.dev/mcp" },
       firstTool: "search_entry_cases",
-      paidAccess: { price: "5 USDC, one-time" }
+      paidAccess: { price: "5 USDC, one-time" },
+      discovery: {
+        agentCard: "https://japan-rulewatch-mcp-mainnet.kadopi.workers.dev/.well-known/agent-card.json",
+        mcpRegistry: { status: "published" },
+        clawHubSkill: { status: "prepared", url: null }
+      }
     });
 
     const x402Starter = await worker.fetch(incomingRequest("https://example.test/products/x402-mcp-starter"), env, ctx);
-    expect(await x402Starter.json()).toMatchObject({ id: "x402-mcp-starter", firstTool: "validate_x402_config", paidAccess: null });
+    expect(await x402Starter.json()).toMatchObject({ id: "x402-mcp-starter", firstTool: "validate_x402_config", paidAccess: null, discovery: { mcpRegistry: { status: "prepared" }, clawHubSkill: { status: "prepared", url: null } } });
 
     const healthCheck = await worker.fetch(incomingRequest("https://example.test/products/agent-card-health-check"), env, ctx);
-    expect(await healthCheck.json()).toMatchObject({ id: "agent-card-health-check", firstTool: "diagnose_agent_card", paidAccess: null });
+    expect(await healthCheck.json()).toMatchObject({ id: "agent-card-health-check", firstTool: "diagnose_agent_card", paidAccess: null, discovery: { mcpRegistry: { status: "prepared" }, clawHubSkill: { status: "prepared", url: null } } });
   });
 
   it("returns 404 for an unknown product discovery page", async () => {

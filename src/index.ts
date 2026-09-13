@@ -1,4 +1,4 @@
-import { catalog } from "./catalog";
+import { catalog, type Product } from "./catalog";
 import { a2aResponse, parseA2ARequest, readSurveySubmission } from "./a2a";
 export { A2AConversation } from "./a2a-conversation";
 import { recordFunnelMetric, recordMetric, recordSurveyResponses, type MetricEvent } from "./metrics";
@@ -131,7 +131,7 @@ function agentCard(origin: string) {
   };
 }
 
-function discoveryPage(origin: string, product: typeof catalog[number]) {
+function discoveryPage(origin: string, product: Product) {
   return {
     schema: "https://aegis-sales-bot.kadopi.workers.dev/schemas/product-discovery-v1",
     id: product.id,
@@ -143,6 +143,13 @@ function discoveryPage(origin: string, product: typeof catalog[number]) {
     freeResult: product.freeOffer,
     paidAccess: product.paidAccess,
     limitations: product.limitations,
+    discovery: product.discovery ? {
+      mcpEndpoint: product.connectionUrl,
+      agentCard: product.discovery.agentCardUrl,
+      githubReadme: product.discovery.githubReadmeUrl,
+      mcpRegistry: product.discovery.mcpRegistry,
+      clawHubSkill: product.discovery.clawHubSkill
+    } : null,
     docsUrl: product.docsUrl,
     sourceUrl: product.sourceUrl,
     nextAction: product.nextAction,

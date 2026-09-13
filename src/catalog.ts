@@ -17,6 +17,12 @@ export type Product = {
   nextAction: string;
   firstTool: string | null;
   paidAccess: { price: string; purchaseConditions: string; paymentDestination: string } | null;
+  discovery?: {
+    agentCardUrl: string;
+    githubReadmeUrl: string;
+    mcpRegistry: { status: "published" | "prepared"; url: string };
+    clawHubSkill: { status: "published" | "prepared"; url: string | null; sourceUrl: string };
+  };
   updatedAt: string;
 };
 
@@ -44,6 +50,12 @@ export const catalog = [
       purchaseConditions: "Authorized business principal or delegated AI only; fixed English Iya model-case preparation pack; not a booking, permit, or legal advice.",
       paymentDestination: "Japan Rule returns the current x402 payment requirements and recipient through get_commercial_terms. Aegis Sales Bot never receives a wallet or payment proof."
     },
+    discovery: {
+      agentCardUrl: "https://japan-rulewatch-mcp-mainnet.kadopi.workers.dev/.well-known/agent-card.json",
+      githubReadmeUrl: "https://github.com/kadopi/japan-rulewatch-mcp/blob/main/README.md",
+      mcpRegistry: { status: "published", url: "https://registry.modelcontextprotocol.io/?q=io.github.kadopi%2Fjapan-rulewatch-mcp" },
+      clawHubSkill: { status: "prepared", url: null, sourceUrl: "https://github.com/kadopi/japan-rulewatch-mcp/blob/main/openclaw/SKILL.md" }
+    },
     updatedAt: "2026-09-08"
   },
   {
@@ -65,6 +77,12 @@ export const catalog = [
     nextAction: "GitHub READMEを確認し、導入先Workerで決済設定を行ってください。",
     firstTool: "validate_x402_config",
     paidAccess: null,
+    discovery: {
+      agentCardUrl: "https://x402-mcp-starter.kadopi.workers.dev/.well-known/agent-card.json",
+      githubReadmeUrl: "https://github.com/kadopi/x402-mcp-starter/blob/master/README.md",
+      mcpRegistry: { status: "prepared", url: "https://registry.modelcontextprotocol.io/?q=io.github.kadopi%2Fx402-mcp-starter" },
+      clawHubSkill: { status: "prepared", url: null, sourceUrl: "https://github.com/kadopi/x402-mcp-starter/blob/master/openclaw/SKILL.md" }
+    },
     updatedAt: "2026-09-06"
   },
   {
@@ -107,6 +125,12 @@ export const catalog = [
     nextAction: "Connect an MCP client and call diagnose_agent_card only for an agent you own or are explicitly authorized to connect to.",
     firstTool: "diagnose_agent_card",
     paidAccess: null,
+    discovery: {
+      agentCardUrl: "https://agent-card-health-check.kadopi.workers.dev/.well-known/agent-card.json",
+      githubReadmeUrl: "https://github.com/kadopi/my-projects/blob/main/apps/agent-card-health-check/README.md",
+      mcpRegistry: { status: "prepared", url: "https://registry.modelcontextprotocol.io/?q=io.github.kadopi%2Fagent-card-health-check" },
+      clawHubSkill: { status: "prepared", url: null, sourceUrl: "https://github.com/kadopi/my-projects/blob/main/apps/agent-card-health-check/openclaw/SKILL.md" }
+    },
     updatedAt: "2026-09-13"
   },
   {

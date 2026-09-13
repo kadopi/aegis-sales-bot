@@ -1,3 +1,9 @@
+## 2026-09-13 商品公開導線（未コミット）
+- Japan Rule、x402 MCP Starter、Agent Card Health Checkの商品JSONに、MCP、Service Card、GitHub README、MCP Registry、ClawHub Skillの公開状態を追加。
+- Japan RuleのMCP Registryは公開済み。x402/Health CheckのRegistryと3つのClawHub Skillは原稿・manifestのみで未公開。
+- 検証: `npm run check && npm test`、33件成功。
+- 次: 商品別にcommit/push後、Registry/ClawHub公開を別承認で実行。
+
 ## 2026-09-13 探索と送信の分離（ローカル実装）
 - Cronは外部A2Aメッセージを送らず、公開Business候補を`outreach_candidates`へ最大1件ずつ蓄積する。
 - 探索順はGlobal A2A RegistryのBusiness候補、次に稼働中かつ商用関連スキルを持つ第2 A2A Directory候補。
