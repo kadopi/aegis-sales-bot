@@ -136,26 +136,26 @@ export const catalog = [
   {
     id: "x402-mcp-integration-kit",
     name: "x402 MCP Integration Kit — Beta",
-    status: "coming-soon",
+    status: "public",
     summary: "A one-time integration kit for developers who want to add one paid, read-only x402 tool to an existing Cloudflare Workers MCP. It packages payment verification, settlement, D1 purchase records, receipts, replay handling, configuration checks, and deployment helpers.",
     useCases: ["Add one paid x402 tool to an existing Cloudflare Workers MCP", "Sell a read-only MCP result with Base USDC while keeping buyer private keys out of the service", "Start from an integration workflow rather than building payment verification and a purchase ledger from scratch"],
     keywords: ["x402", "mcp", "integration", "kit", "cloudflare", "workers", "d1", "usdc", "base", "payment", "payments", "settlement", "receipt", "replay", "monetize", "monetization", "paid tool"],
-    limitations: ["Checkout is not yet available while Gumroad and Stripe verification is completed", "No hosting, managed dashboard, subscription management, customer-fund custody, custom implementation, or revenue guarantee", "The kit is for one paid, read-only MCP tool and requires the buyer's own Cloudflare account, Base USDC receiving wallet, and sellable tool result"],
-    freeOffer: "Product scope and buyer requirements are published in the catalog. Checkout opens after the payment-platform verification is complete.",
+    limitations: ["No hosting, managed dashboard, subscription management, customer-fund custody, custom implementation, ongoing support, or revenue guarantee", "The kit is for one paid, read-only MCP tool and requires Node.js 24+, the buyer's own Cloudflare Workers and D1 access, Base USDC receiving wallet, and sellable tool result", "This is the $19 Integration Kit download, separate from any $0.01 payment-flow sample."],
+    freeOffer: "Review the published product scope and buyer requirements before purchase.",
     paidOffer: "$19 USD, one-time Beta purchase. Downloadable source ZIP with an x402 paid-tool integration helper, Base Sepolia and Base Mainnet USDC configuration, x402 verify and settlement flow, D1 purchase ledger, replay handling, payment receipts, preflight, migration and deploy helpers, plus a free-plus-paid MCP example.",
     connectionType: "checkout",
-    connectionUrl: null,
+    connectionUrl: "https://kadoya2.gumroad.com/l/x402-mcp-integration-kit",
     docsUrl: null,
     sourceUrl: null,
     exampleInput: "I have a Cloudflare Workers MCP and want to add one paid read-only tool that settles in Base USDC with x402.",
-    exampleOutput: "The catalog returns the Integration Kit scope, buyer requirements, $19 Beta price, and checkout availability. It does not claim that checkout is open before the public Gumroad URL exists.",
-    nextAction: "Review the scope and buyer requirements. Wait for the public Gumroad checkout URL before attempting a purchase.",
+    exampleOutput: "The catalog returns the Integration Kit scope, buyer requirements, $19 one-time price, public Gumroad checkout URL, and downloadable source ZIP delivery format.",
+    nextAction: "Review the scope and buyer requirements, then use the public Gumroad checkout URL if the Integration Kit fits your existing Cloudflare Workers MCP.",
     firstTool: null,
     paidAccess: {
       price: "$19 USD, one-time Beta purchase",
-      purchaseConditions: "Checkout is not open until the public Gumroad URL is published; buyer needs their own Cloudflare account, Base USDC receiving wallet, and sellable read-only tool result.",
-      paymentDestination: "Not available until the public checkout URL is published."
+      purchaseConditions: "Self-service source ZIP; buyer needs Node.js 24+, their own Cloudflare Workers and D1 access, Base USDC receiving wallet, and sellable read-only tool result.",
+      paymentDestination: "https://kadoya2.gumroad.com/l/x402-mcp-integration-kit"
     },
-    updatedAt: "2026-09-10"
+    updatedAt: "2026-10-03"
   }
 ] as const satisfies readonly Product[];

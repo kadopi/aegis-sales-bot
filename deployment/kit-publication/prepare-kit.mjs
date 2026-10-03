@@ -1,0 +1,25 @@
+import fs from 'node:fs';
+import crypto from 'node:crypto';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+const [repo, baselinePath, outputPath] = process.argv.slice(2);
+if (!outputPath) throw Error('Usage: node prepare-kit.mjs REPO BASELINE OUTPUT');
+const baseline = fs.readFileSync(baselinePath, 'utf8');
+const hash = value => crypto.createHash('sha256').update(value).digest('hex');
+if (hash(baseline) !== '429cb54e7cc6a41ab71f781ee6b40f0a5cfe0f9efbc8e3c7d19a016128d220d5') throw Error('Unexpected production baseline; inspect newer deployment before publishing');
+const ts = createRequire(path.join(path.resolve(repo), 'package.json'))('typescript');
+const js = ts.transpileModule(fs.readFileSync(path.join(repo, 'src/catalog.ts'), 'utf8'), { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText;
+const { catalog } = await import('data:text/javascript;base64,' + Buffer.from(js).toString('base64'));
+const kit = catalog.find(p => p.id === 'x402-mcp-integration-kit');
+const start = baseline.indexOf('  {\n    id: "x402-mcp-integration-kit",');
+const end = baseline.indexOf('\n  }\n];', start) + '\n  }'.length;
+if (start < 0 || end <= start) throw Error('Kit block unavailable');
+const oldGuard = 'if (product.status === "coming-soon" && !["integration", "kit"].some((keyword) => keywordMatches(request, keyword))) return 0;';
+const newGuard = 'if (product.id === "x402-mcp-integration-kit" && !["integration", "kit"].some((keyword) => keywordMatches(request, keyword))) return 0;';
+if (baseline.split(oldGuard).length !== 2) throw Error('Expected one recommendation guard');
+const newKit = JSON.stringify(kit, null, 2).split('\n').map(line => '  ' + line).join('\n');
+const patched = (baseline.slice(0, start) + newKit + baseline.slice(end)).replace(oldGuard, newGuard);
+// Prove all other code is unchanged by reversing the two authorized replacements.
+if (patched.replace(newGuard, oldGuard).replace(newKit, baseline.slice(start, end)) !== baseline) throw Error('Unexpected change outside Kit and guard');
+fs.writeFileSync(outputPath, patched);
+console.log(JSON.stringify({baselineSha256: hash(baseline), artifactSha256: hash(patched), productId:kit.id},null,2));

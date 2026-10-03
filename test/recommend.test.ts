@@ -43,13 +43,13 @@ describe("recommend", () => {
     expect(result.nextAction).toContain("diagnose_agent_card");
   });
 
-  it("lists the Integration Kit as coming soon without inventing a checkout URL", () => {
+  it("lists the published Integration Kit with its Gumroad checkout URL", () => {
     const result = recommend("I need an x402 integration kit for a paid Cloudflare Workers MCP tool");
     expect(result.fit).toBe("high");
     expect(result.recommendedProduct?.id).toBe("x402-mcp-integration-kit");
-    expect(result.recommendedProduct?.status).toBe("coming-soon");
+    expect(result.recommendedProduct?.status).toBe("public");
     expect(result.paidOffer).toContain("$19 USD");
-    expect(result.connection).toBeNull();
+    expect(result.connection?.url).toBe("https://kadoya2.gumroad.com/l/x402-mcp-integration-kit");
     expect(result.nextAction).toContain("Gumroad");
   });
 

@@ -86,7 +86,7 @@ function createHealthCheckDemo(value: string | undefined): HealthCheckDemo | nul
 }
 
 function score(product: Product, request: string): number {
-  if (product.status === "coming-soon" && !["integration", "kit"].some((keyword) => keywordMatches(request, keyword))) return 0;
+  if (product.id === "x402-mcp-integration-kit" && !["integration", "kit"].some((keyword) => keywordMatches(request, keyword))) return 0;
   return product.keywords.reduce((total, keyword) => total + (keywordMatches(request, keyword) ? 1 : 0), 0);
 }
 

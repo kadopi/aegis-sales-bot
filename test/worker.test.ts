@@ -44,7 +44,7 @@ describe("public HTTP routes", () => {
     expect(response.status).toBe(200);
     const products = (await response.json() as { products: Array<{ id: string; status: string; connectionUrl: string | null }> }).products;
     expect(products).toHaveLength(5);
-    expect(products.find((product) => product.id === "x402-mcp-integration-kit")).toMatchObject({ status: "coming-soon", connectionUrl: null });
+    expect(products.find((product) => product.id === "x402-mcp-integration-kit")).toMatchObject({ status: "public", connectionUrl: "https://kadoya2.gumroad.com/l/x402-mcp-integration-kit" });
     expect(products.find((product) => product.id === "agent-card-health-check")).toMatchObject({ status: "public", connectionUrl: "https://agent-card-health-check.kadopi.workers.dev/mcp" });
   });
 
@@ -68,6 +68,33 @@ describe("public HTTP routes", () => {
 
     const healthCheck = await worker.fetch(incomingRequest("https://example.test/products/agent-card-health-check"), env, ctx);
     expect(await healthCheck.json()).toMatchObject({ id: "agent-card-health-check", firstTool: "diagnose_agent_card", paidAccess: null, discovery: { mcpRegistry: { status: "prepared" }, clawHubSkill: { status: "published", url: "https://clawhub.ai/kadopi/agent-card-health-check" } } });
+  });
+
+  it("serves the Beta Kit purchase conditions and removes checkout-unavailable copy", async () => {
+    const response = await worker.fetch(incomingRequest("https://example.test/products/x402-mcp-integration-kit"), env, ctx);
+    expect(response.status).toBe(200);
+    const payload = await response.json();
+    expect(payload).toMatchObject({
+      id: "x402-mcp-integration-kit",
+      status: "public",
+      connection: { type: "checkout", url: "https://kadoya2.gumroad.com/l/x402-mcp-integration-kit" },
+      paidAccess: {
+        price: "$19 USD, one-time Beta purchase",
+        paymentDestination: "https://kadoya2.gumroad.com/l/x402-mcp-integration-kit",
+        purchaseConditions: expect.stringContaining("Node.js 24+")
+      },
+      limitations: expect.arrayContaining([expect.stringContaining("read-only MCP tool")])
+    });
+    expect(JSON.stringify(payload)).not.toMatch(/coming-soon|not yet available|verification is complete|Wait for the public|Not available until/i);
+  });
+
+  it.each(["integration", "kit"])("routes a targeted x402 %s request to the paid Kit", async (term) => {
+    const response = await worker.fetch(incomingRequest("https://example.test/recommend", { method: "POST", body: JSON.stringify({ request: `x402 USDC payment for MCP ${term}` }) }), env, ctx);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      recommendedProduct: { id: "x402-mcp-integration-kit", status: "public" },
+      connection: { type: "checkout", url: "https://kadoya2.gumroad.com/l/x402-mcp-integration-kit" }
+    });
   });
 
   it("returns 404 for an unknown product discovery page", async () => {
